@@ -1,0 +1,14 @@
+# Visual Studio 临时文件
+.vs/
+bin/
+obj/
+publish/
+
+# 用户设置
+*.user
+*.suo
+*.cache
+
+# 系统文件
+Thumbs.db
+.DS_Store

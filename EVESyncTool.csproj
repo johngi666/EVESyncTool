@@ -1,0 +1,37 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<!-- 基础配置 -->
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net8.0-windows</TargetFramework>
+		<UseWindowsForms>true</UseWindowsForms>
+		<Nullable>disable</Nullable>
+		<ApplicationIcon>icon.ico</ApplicationIcon>
+		<AssemblyTitle>EVE配置管理工具</AssemblyTitle>
+		<AssemblyName>EVE配置管理工具</AssemblyName>
+		<RootNamespace>EVESyncTool</RootNamespace>
+
+		<!-- 发布配置：生成单个文件 -->
+		<PublishSingleFile>true</PublishSingleFile>
+		<SelfContained>true</SelfContained>
+		<PublishReadyToRun>true</PublishReadyToRun>
+		<PublishTrimmed>false</PublishTrimmed>
+		<IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+	</PropertyGroup>
+
+	<!-- 确保 marshal_ffi.dll 在发布时被复制 -->
+	<ItemGroup>
+		<Content Include="publish\marshal_ffi.dll">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<Link>marshal_ffi.dll</Link>
+			<Visible>false</Visible>
+		</Content>
+	</ItemGroup>
+
+	<!-- 如果没有 publish\ 目录，直接从项目根目录复制，方便调试 -->
+	<ItemGroup Condition="Exists('marshal_ffi.dll')">
+		<Content Include="marshal_ffi.dll">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<Visible>false</Visible>
+		</Content>
+	</ItemGroup>
+</Project>
