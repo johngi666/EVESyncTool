@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
 
@@ -22,6 +23,10 @@ namespace EVESyncTool.Core.UI
         // 备份管理列表
         private DataGridView _dgvBackups;
         private Label _lblBackupTitle;
+
+        // 用户备注相关
+        private ToolTip _userToolTip = new ToolTip();
+        private string _hoveredUserId = null;
 
         // 列头（供外部访问）
         public ColumnHeader ColUserId { get; private set; }
@@ -47,6 +52,9 @@ namespace EVESyncTool.Core.UI
         public Label LblUserTitle => _lblUserTitle;
         public Label LblCharTitle => _lblCharTitle;
         public Label LblBackupTitle => _lblBackupTitle;
+
+        // 用户备注相关事件
+        public event EventHandler<UserRemarkEditEventArgs> UserRemarkEdited;
 
         public RightPanelBuilder()
         {
@@ -133,7 +141,7 @@ namespace EVESyncTool.Core.UI
                 AllowUserToResizeColumns = false,
                 RowHeadersVisible = false,
                 SelectionMode = DataGridViewSelectionMode.FullRowSelect,
-                ReadOnly = true,
+                ReadOnly = false,
                 AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None,
                 ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing,
                 Font = new Font("Microsoft YaHei", 9),
@@ -152,17 +160,25 @@ namespace EVESyncTool.Core.UI
                 }
             };
 
+            // ===== 用户ID列（可编辑） =====
             DataGridViewTextBoxColumn colUserId = new DataGridViewTextBoxColumn
             {
                 HeaderText = "用户ID",
                 Width = 90,
-                DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleCenter }
+                DefaultCellStyle = new DataGridViewCellStyle
+                {
+                    Alignment = DataGridViewContentAlignment.MiddleCenter,
+                    BackColor = Color.White
+                },
+                ReadOnly = false
             };
+
             DataGridViewTextBoxColumn colUserTime = new DataGridViewTextBoxColumn
             {
                 HeaderText = "修改时间",
                 Width = 90,
-                DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleCenter }
+                DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleCenter },
+                ReadOnly = true
             };
             DataGridViewButtonColumn colUserBackup = new DataGridViewButtonColumn
             {
@@ -170,7 +186,8 @@ namespace EVESyncTool.Core.UI
                 Width = 67,
                 Text = "💾",
                 UseColumnTextForButtonValue = true,
-                FlatStyle = FlatStyle.Flat
+                FlatStyle = FlatStyle.Flat,
+                ReadOnly = true
             };
             DataGridViewButtonColumn colUserSync = new DataGridViewButtonColumn
             {
@@ -178,7 +195,8 @@ namespace EVESyncTool.Core.UI
                 Width = 68,
                 Text = "📂",
                 UseColumnTextForButtonValue = true,
-                FlatStyle = FlatStyle.Flat
+                FlatStyle = FlatStyle.Flat,
+                ReadOnly = true
             };
 
             _dgvUserFiles.Columns.Add(colUserId);
@@ -186,8 +204,22 @@ namespace EVESyncTool.Core.UI
             _dgvUserFiles.Columns.Add(colUserBackup);
             _dgvUserFiles.Columns.Add(colUserSync);
 
+            // ===== 用户ID列双击编辑事件 =====
+            _dgvUserFiles.CellDoubleClick += OnUserCellDoubleClick;
+            _dgvUserFiles.CellEndEdit += OnUserCellEndEdit;
+
+            // ===== 鼠标悬停显示原ID =====
+            _dgvUserFiles.CellMouseEnter += OnUserCellMouseEnter;
+            _dgvUserFiles.CellMouseLeave += OnUserCellMouseLeave;
+            _dgvUserFiles.MouseLeave += OnUserFilesMouseLeave;
+
             panel.Controls.Add(_lblUserTitle);
             panel.Controls.Add(_dgvUserFiles);
+
+            panel.Resize += (s, e) =>
+            {
+                _dgvUserFiles.Width = panel.Width - 10;
+            };
 
             return panel;
         }
@@ -246,13 +278,15 @@ namespace EVESyncTool.Core.UI
             {
                 HeaderText = "备份名",
                 Width = 90,
-                DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleCenter }
+                DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleCenter },
+                ReadOnly = true
             };
             DataGridViewTextBoxColumn colBackupTime = new DataGridViewTextBoxColumn
             {
                 HeaderText = "时间",
                 Width = 90,
-                DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleCenter }
+                DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleCenter },
+                ReadOnly = true
             };
             DataGridViewButtonColumn colBackupShow = new DataGridViewButtonColumn
             {
@@ -260,7 +294,8 @@ namespace EVESyncTool.Core.UI
                 Width = 45,
                 Text = "📂",
                 UseColumnTextForButtonValue = true,
-                FlatStyle = FlatStyle.Flat
+                FlatStyle = FlatStyle.Flat,
+                ReadOnly = true
             };
             DataGridViewButtonColumn colBackupRestore = new DataGridViewButtonColumn
             {
@@ -268,7 +303,8 @@ namespace EVESyncTool.Core.UI
                 Width = 45,
                 Text = "↩️",
                 UseColumnTextForButtonValue = true,
-                FlatStyle = FlatStyle.Flat
+                FlatStyle = FlatStyle.Flat,
+                ReadOnly = true
             };
             DataGridViewButtonColumn colBackupDelete = new DataGridViewButtonColumn
             {
@@ -276,7 +312,8 @@ namespace EVESyncTool.Core.UI
                 Width = 45,
                 Text = "🗑️",
                 UseColumnTextForButtonValue = true,
-                FlatStyle = FlatStyle.Flat
+                FlatStyle = FlatStyle.Flat,
+                ReadOnly = true
             };
 
             _dgvBackups.Columns.Add(colBackupName);
@@ -287,6 +324,11 @@ namespace EVESyncTool.Core.UI
 
             panel.Controls.Add(_lblBackupTitle);
             panel.Controls.Add(_dgvBackups);
+
+            panel.Resize += (s, e) =>
+            {
+                _dgvBackups.Width = panel.Width - 10;
+            };
 
             return panel;
         }
@@ -345,19 +387,22 @@ namespace EVESyncTool.Core.UI
             {
                 HeaderText = "角色名",
                 Width = 130,
-                DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleCenter }
+                DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleCenter },
+                ReadOnly = true
             };
             DataGridViewTextBoxColumn colCharId = new DataGridViewTextBoxColumn
             {
                 HeaderText = "角色ID",
                 Width = 90,
-                DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleCenter }
+                DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleCenter },
+                ReadOnly = true
             };
             DataGridViewTextBoxColumn colCharTime = new DataGridViewTextBoxColumn
             {
                 HeaderText = "修改时间",
                 Width = 90,
-                DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleCenter }
+                DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleCenter },
+                ReadOnly = true
             };
             DataGridViewButtonColumn colCharBackup = new DataGridViewButtonColumn
             {
@@ -365,7 +410,8 @@ namespace EVESyncTool.Core.UI
                 Width = 50,
                 Text = "💾",
                 UseColumnTextForButtonValue = true,
-                FlatStyle = FlatStyle.Flat
+                FlatStyle = FlatStyle.Flat,
+                ReadOnly = true
             };
             DataGridViewButtonColumn colCharSync = new DataGridViewButtonColumn
             {
@@ -373,7 +419,8 @@ namespace EVESyncTool.Core.UI
                 Width = 50,
                 Text = "📂",
                 UseColumnTextForButtonValue = true,
-                FlatStyle = FlatStyle.Flat
+                FlatStyle = FlatStyle.Flat,
+                ReadOnly = true
             };
 
             _dgvCharFiles.Columns.Add(colCharName);
@@ -385,12 +432,134 @@ namespace EVESyncTool.Core.UI
             panel.Controls.Add(_lblCharTitle);
             panel.Controls.Add(_dgvCharFiles);
 
+            panel.Resize += (s, e) =>
+            {
+                _dgvCharFiles.Width = panel.Width - 200;
+            };
+
             return panel;
+        }
+
+        // ===== 用户备注相关事件处理 =====
+
+        private void OnUserCellDoubleClick(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex < 0 || e.ColumnIndex != 0) return;
+
+            var grid = sender as DataGridView;
+            if (grid == null) return;
+
+            grid.CurrentCell = grid.Rows[e.RowIndex].Cells[e.ColumnIndex];
+            grid.BeginEdit(true);
+        }
+
+        private void OnUserCellEndEdit(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex < 0 || e.ColumnIndex != 0) return;
+
+            var grid = sender as DataGridView;
+            if (grid == null) return;
+
+            var row = grid.Rows[e.RowIndex];
+            if (row.Tag == null) return;
+
+            string userId = row.Tag.ToString();
+            string newRemark = grid.Rows[e.RowIndex].Cells[e.ColumnIndex].Value?.ToString()?.Trim() ?? "";
+
+            UserRemarkEdited?.Invoke(this, new UserRemarkEditEventArgs(userId, newRemark));
+        }
+
+        // ===== 鼠标悬停显示原ID（修复版） =====
+
+        private void OnUserCellMouseEnter(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex < 0 || e.ColumnIndex != 0) return;
+
+            var grid = sender as DataGridView;
+            if (grid == null) return;
+
+            var row = grid.Rows[e.RowIndex];
+            if (row.Tag == null) return;
+
+            string userId = row.Tag.ToString();
+            string displayText = row.Cells[e.ColumnIndex].Value?.ToString() ?? userId;
+
+            if (displayText != userId)
+            {
+                Point mousePos = grid.PointToClient(Cursor.Position);
+                _userToolTip.Show($"原ID: {userId}", grid, mousePos.X + 15, mousePos.Y - 20, 3000);
+                _hoveredUserId = userId;
+            }
+            else
+            {
+                _userToolTip.Hide(grid);
+                _hoveredUserId = null;
+            }
+        }
+
+        private void OnUserCellMouseLeave(object sender, DataGridViewCellEventArgs e)
+        {
+            _userToolTip.Hide(_dgvUserFiles);
+            _hoveredUserId = null;
+        }
+
+        private void OnUserFilesMouseLeave(object sender, EventArgs e)
+        {
+            _userToolTip.Hide(_dgvUserFiles);
+            _hoveredUserId = null;
+        }
+
+        // ===== 外部调用方法 =====
+
+        public void UpdateUserRemarkDisplay(string userId, string remark)
+        {
+            foreach (DataGridViewRow row in _dgvUserFiles.Rows)
+            {
+                if (row.Tag != null && row.Tag.ToString() == userId)
+                {
+                    row.Cells[0].Value = string.IsNullOrWhiteSpace(remark) ? userId : remark;
+                    break;
+                }
+            }
+        }
+
+        public void RefreshUserRemarks(Dictionary<string, string> remarks)
+        {
+            foreach (DataGridViewRow row in _dgvUserFiles.Rows)
+            {
+                if (row.Tag != null)
+                {
+                    string userId = row.Tag.ToString();
+                    if (remarks != null && remarks.TryGetValue(userId, out string remark) && !string.IsNullOrWhiteSpace(remark))
+                    {
+                        row.Cells[0].Value = remark;
+                    }
+                    else
+                    {
+                        row.Cells[0].Value = userId;
+                    }
+                }
+            }
         }
 
         public Panel Build()
         {
             return _panel;
+        }
+    }
+
+    /// <summary>
+    /// 用户备注编辑事件参数
+    /// </summary>
+    public class UserRemarkEditEventArgs : EventArgs
+    {
+        public string UserId { get; }
+        public string Remark { get; }
+
+        public UserRemarkEditEventArgs(string userId, string remark)
+        {
+            UserId = userId;
+            Remark = remark;
         }
     }
 }

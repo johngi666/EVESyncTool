@@ -66,6 +66,20 @@ namespace EVESyncTool.Core.Services.File
 
                 var (users, chars) = _fileListService.ScanFolder(currentFolder);
 
+                // ★★★ 应用用户备注到 DisplayName ★★★
+                var remarks = _configManager.GetUserRemarks();
+                foreach (var user in users)
+                {
+                    if (remarks != null && remarks.TryGetValue(user.UserId, out string remark) && !string.IsNullOrWhiteSpace(remark))
+                    {
+                        user.DisplayName = remark;
+                    }
+                    else
+                    {
+                        user.DisplayName = user.UserId;
+                    }
+                }
+
                 _userFileItems = users;
                 _invokeOnUI?.Invoke(() =>
                 {
@@ -180,6 +194,12 @@ namespace EVESyncTool.Core.Services.File
             if (userMatch.Success)
             {
                 string userId = userMatch.Groups[1].Value;
+                // ★★★ 检查是否有用户备注 ★★★
+                var remarks = _configManager.GetUserRemarks();
+                if (remarks != null && remarks.TryGetValue(userId, out string remark) && !string.IsNullOrWhiteSpace(remark))
+                {
+                    return $"📄 {remark} ({userId})";
+                }
                 return $"📄 用户 {userId}";
             }
 
@@ -211,6 +231,30 @@ namespace EVESyncTool.Core.Services.File
                 clearUserGrid?.Invoke(null);
                 clearCharGrid?.Invoke(null);
                 clearBackupGrid?.Invoke(null);
+            });
+        }
+
+        /// <summary>
+        /// ★★★ 刷新用户备注显示（外部调用） ★★★
+        /// </summary>
+        public void RefreshUserRemarks(Action<DataGridView, List<UserFileItem>> updateUserGrid)
+        {
+            var remarks = _configManager.GetUserRemarks();
+            foreach (var user in _userFileItems)
+            {
+                if (remarks != null && remarks.TryGetValue(user.UserId, out string remark) && !string.IsNullOrWhiteSpace(remark))
+                {
+                    user.DisplayName = remark;
+                }
+                else
+                {
+                    user.DisplayName = user.UserId;
+                }
+            }
+
+            _invokeOnUI?.Invoke(() =>
+            {
+                updateUserGrid?.Invoke(null, _userFileItems);
             });
         }
     }

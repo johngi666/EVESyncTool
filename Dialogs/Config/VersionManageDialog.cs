@@ -191,6 +191,7 @@ namespace EVESyncTool.Dialogs.Config
             return row;
         }
 
+        // ===== 切换（已移除自动备份，添加确认弹窗） =====
         private void BtnSwitch_Click(ConfigScheme scheme)
         {
             if (string.IsNullOrEmpty(_parentFolder) || !Directory.Exists(_parentFolder))
@@ -204,39 +205,27 @@ namespace EVESyncTool.Dialogs.Config
                 return;
             }
 
+            // ★★★ 确认弹窗 ★★★
             var result = CustomMessageBox.Show(
-                $"确定将 [{scheme.Name}] 切换到父文件夹吗？\n\n切换前会自动备份当前配置到桌面。",
-                "确认切换", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                $"确定将 [{scheme.Name}] 切换到父文件夹吗？\n\n此操作将用方案文件覆盖当前配置。",
+                "确认切换",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question);
+
             if (result != DialogResult.Yes) return;
 
-            Task.Run(() =>
+            try
             {
-                try
-                {
-                    string desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-                    string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-                    string backupPath = Path.Combine(desktop, $"EVE_Config_Backup_{timestamp}");
-                    Directory.CreateDirectory(backupPath);
-                    CopyDirectoryContents(_parentFolder, backupPath);
-                }
-                catch
-                {
-                    // 静默处理自动备份失败
-                }
-            }).ContinueWith(_ =>
+                CopyDirectoryContents(scheme.FolderPath, _parentFolder);
+                _manager.UpdateLastUsed(scheme.Id);
+                OnSchemesChanged?.Invoke();
+                AddLog($"切换完成 [{scheme.Name}]");
+                CustomMessageBox.Show($"切换完成 [{scheme.Name}]", "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
             {
-                try
-                {
-                    CopyDirectoryContents(scheme.FolderPath, _parentFolder);
-                    _manager.UpdateLastUsed(scheme.Id);
-                    OnSchemesChanged?.Invoke();
-                    CustomMessageBox.Show($"切换完成 [{scheme.Name}]", "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                }
-                catch (Exception ex)
-                {
-                    CustomMessageBox.Show($"切换失败: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
-            });
+                CustomMessageBox.Show($"切换失败: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void BtnUpdate_Click(ConfigScheme scheme)
@@ -292,7 +281,7 @@ namespace EVESyncTool.Dialogs.Config
                     CopyDirectoryContents(scheme.FolderPath, path);
                     return path;
                 }
-                catch (Exception)   // ← 这里修改了
+                catch (Exception)
                 {
                     AddLog("备份失败");
                     return null;

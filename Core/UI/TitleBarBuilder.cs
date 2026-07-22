@@ -78,19 +78,19 @@ namespace EVESyncTool.Core.UI
             };
             _btnLog.FlatAppearance.BorderSize = 0;
 
-            // 覆盖设置按钮
-            _btnSettings = new Button
-            {
-                Text = "⚙覆盖设置",
-                FlatStyle = FlatStyle.Flat,
-                ForeColor = Color.White,
-                BackColor = Color.Transparent,
-                Font = new Font("Microsoft YaHei", 9),
-                Size = new Size(80, 25),
-                Location = new Point(360, 4),
-                Cursor = Cursors.Hand
-            };
-            _btnSettings.FlatAppearance.BorderSize = 0;
+            //// 覆盖设置按钮
+            //_btnSettings = new Button
+            //{
+            //    Text = "⚙覆盖设置",
+            //    FlatStyle = FlatStyle.Flat,
+            //    ForeColor = Color.White,
+            //    BackColor = Color.Transparent,
+            //    Font = new Font("Microsoft YaHei", 9),
+            //    Size = new Size(80, 25),
+            //    Location = new Point(360, 4),
+            //    Cursor = Cursors.Hand
+            //};
+            //_btnSettings.FlatAppearance.BorderSize = 0;
 
             // 关闭按钮
             Button btnClose = new Button

@@ -151,15 +151,6 @@ namespace EVESyncTool
             _logService.Log("程序启动", "成功", "");
             _ = AutoFindFolderAsync();
             _serverStatusManager.Start();
-
-            // 覆盖设置：加载时确保默认全选
-            var settings = _configManager.GetSyncSettings();
-            if (settings.SelectedPartialSettings == null || settings.SelectedPartialSettings.Count == 0)
-            {
-                settings.SelectedPartialSettings = SettingMapping.GetAll().Select(s => s.DisplayName).ToList();
-                _configManager.SaveSyncSettings(settings);
-                _logService.Log("覆盖设置", "默认全选", $"共 {settings.SelectedPartialSettings.Count} 类");
-            }
         }
 
         private void InitializeComponent()
@@ -174,7 +165,8 @@ namespace EVESyncTool
             this.Controls.Add(_titleBarBuilder.Build());
             _titleBarBuilder.BtnHelp.Click += BtnHelp_Click;
             _titleBarBuilder.BtnLog.Click += BtnLog_Click;
-            _titleBarBuilder.BtnSettings.Click += BtnSettings_Click;
+            // 设置按钮已移除
+            // _titleBarBuilder.BtnSettings.Click += BtnSettings_Click;
 
             TableLayoutPanel mainContainer = new TableLayoutPanel
             {
@@ -211,7 +203,7 @@ namespace EVESyncTool
             _leftPanel.BtnBackup.Click += (s, e) => _backupService.PerformBackup();
             _leftPanel.BtnDeleteAllBackups.Click += (s, e) => _backupService.DeleteAllBackups();
 
-            // ★★★ 快捷覆盖 - 添加确认弹窗 ★★★
+            // 快捷覆盖
             _leftPanel.BtnSync.Click += async (s, e) =>
             {
                 var result = CustomMessageBox.Show(
@@ -233,9 +225,37 @@ namespace EVESyncTool
                 }
             };
 
+            // ★★★ 绑定用户备注编辑事件 ★★★
+            _rightPanel.UserRemarkEdited += OnUserRemarkEdited;
+
             _rightPanel.DgvUserFiles.CellClick += (s, e) => _dataGridViewHandler.OnUserFileCellClick(e);
             _rightPanel.DgvCharFiles.CellClick += (s, e) => _dataGridViewHandler.OnCharFileCellClick(e);
             _rightPanel.DgvBackups.CellClick += (s, e) => _dataGridViewHandler.OnBackupCellClick(e);
+        }
+
+        // ===== 用户备注编辑事件处理 =====
+        private void OnUserRemarkEdited(object sender, UserRemarkEditEventArgs e)
+        {
+            if (string.IsNullOrEmpty(e.UserId)) return;
+
+            // 保存备注
+            _configManager.SaveUserRemark(e.UserId, e.Remark);
+
+            // 更新显示
+            string displayName = _configManager.GetUserDisplayName(e.UserId);
+            _rightPanel.UpdateUserRemarkDisplay(e.UserId, displayName);
+
+            // 更新本地列表中的DisplayName
+            foreach (var item in _userFileItems)
+            {
+                if (item.UserId == e.UserId)
+                {
+                    item.DisplayName = displayName;
+                    break;
+                }
+            }
+
+            _logService.Log("用户备注", string.IsNullOrEmpty(e.Remark) ? "删除" : "更新", $"{e.UserId} → {e.Remark}");
         }
 
         private async Task OnServerChanged(string newServer)
@@ -289,14 +309,28 @@ namespace EVESyncTool
                 {
                     _userFileItems = items;
                     _rightPanel.DgvUserFiles.Rows.Clear();
+
+                    // ★★★ 获取用户备注 ★★★
+                    var remarks = _configManager.GetUserRemarks();
+
                     foreach (var item in items)
                     {
-                        _rightPanel.DgvUserFiles.Rows.Add(
-                            item.DisplayName ?? item.UserId,
+                        // 获取显示名（有备注显示备注，无备注显示ID）
+                        string displayName = _configManager.GetUserDisplayName(item.UserId);
+                        item.DisplayName = displayName;
+
+                        int rowIndex = _rightPanel.DgvUserFiles.Rows.Add(
+                            displayName,  // ← 显示备注或ID
                             item.ModifyTime.ToString("MM-dd HH:mm"),
                             "💾",
                             "📂"
                         );
+
+                        // ★★★ 存储用户ID到行Tag ★★★
+                        if (rowIndex >= 0)
+                        {
+                            _rightPanel.DgvUserFiles.Rows[rowIndex].Tag = item.UserId;
+                        }
                     }
                 },
                 (grid, items) =>
@@ -396,36 +430,41 @@ namespace EVESyncTool
                 return;
             }
 
-            var settings = _configManager.GetSyncSettings();
-            var savedSelections = settings.SelectedPartialSettings ?? new List<string>();
-            var targets = otherFiles.Select(item => new FileTargetItem(item.FilePath, item.DisplayName ?? item.UserId)).ToList();
+            // ★★★ 获取用户备注 ★★★
+            var remarks = _configManager.GetUserRemarks();
 
-            using (var dialog = new SyncDialog(
+            // ★★★ 创建FileTargetItem时传入UserId ★★★
+            var targets = otherFiles.Select(item => new FileTargetItem(
+                item.FilePath,
+                _configManager.GetUserDisplayName(item.UserId),  // 显示名
+                item.UserId  // 用户ID，用于匹配备注
+            )).ToList();
+
+            using (var fileDialog = new SyncDialog(
                 sourceItem.DisplayName ?? sourceItem.UserId,
                 System.IO.Path.GetFileName(_currentFolder),
                 targets,
-                savedSelections))
+                remarks))  // ← 传入备注字典
             {
-                if (dialog.ShowDialog(this) == DialogResult.OK)
+                if (fileDialog.ShowDialog(this) != DialogResult.OK)
                 {
-                    settings.SelectedPartialSettings = dialog.SelectedSettings;
-                    _configManager.SaveSyncSettings(settings);
-
-                    foreach (var targetPath in dialog.SelectedTargets)
-                    {
-                        try
-                        {
-                            System.IO.File.Copy(sourceItem.FilePath, targetPath, true);
-                            _logService.Log("同步用户文件", "成功", $"{System.IO.Path.GetFileName(sourceItem.FilePath)} → {System.IO.Path.GetFileName(targetPath)}");
-                        }
-                        catch (Exception ex)
-                        {
-                            _logService.Log("同步用户文件", "失败", $"{System.IO.Path.GetFileName(targetPath)}: {ex.Message}");
-                        }
-                    }
-                    _ = RefreshFileListAsync();
-                    CustomMessageBox.Show($"同步完成，共同步 {dialog.SelectedTargets.Count} 个文件", "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
                 }
+
+                foreach (var targetPath in fileDialog.SelectedTargets)
+                {
+                    try
+                    {
+                        System.IO.File.Copy(sourceItem.FilePath, targetPath, true);
+                        _logService.Log("同步用户文件", "成功", $"{System.IO.Path.GetFileName(sourceItem.FilePath)} → {System.IO.Path.GetFileName(targetPath)}");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logService.Log("同步用户文件", "失败", $"{System.IO.Path.GetFileName(targetPath)}: {ex.Message}");
+                    }
+                }
+                _ = RefreshFileListAsync();
+                CustomMessageBox.Show($"同步完成，共同步 {fileDialog.SelectedTargets.Count} 个文件", "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
 
@@ -438,36 +477,38 @@ namespace EVESyncTool
                 return;
             }
 
-            var settings = _configManager.GetSyncSettings();
-            var savedSelections = settings.SelectedPartialSettings ?? new List<string>();
-            var targets = otherFiles.Select(item => new FileTargetItem(item.FilePath, item.CharacterName ?? item.CharacterId)).ToList();
+            // ★★★ 角色文件不需要备注，传入null ★★★
+            var targets = otherFiles.Select(item => new FileTargetItem(
+                item.FilePath,
+                item.CharacterName ?? item.CharacterId
+            // 角色文件没有UserId，不需要备注
+            )).ToList();
 
-            using (var dialog = new SyncDialog(
+            using (var fileDialog = new SyncDialog(
                 sourceItem.CharacterName ?? sourceItem.CharacterId,
                 System.IO.Path.GetFileName(_currentFolder),
                 targets,
-                savedSelections))
+                null))  // ← 角色文件不需要备注
             {
-                if (dialog.ShowDialog(this) == DialogResult.OK)
+                if (fileDialog.ShowDialog(this) != DialogResult.OK)
                 {
-                    settings.SelectedPartialSettings = dialog.SelectedSettings;
-                    _configManager.SaveSyncSettings(settings);
-
-                    foreach (var targetPath in dialog.SelectedTargets)
-                    {
-                        try
-                        {
-                            System.IO.File.Copy(sourceItem.FilePath, targetPath, true);
-                            _logService.Log("同步角色文件", "成功", $"{System.IO.Path.GetFileName(sourceItem.FilePath)} → {System.IO.Path.GetFileName(targetPath)}");
-                        }
-                        catch (Exception ex)
-                        {
-                            _logService.Log("同步角色文件", "失败", $"{System.IO.Path.GetFileName(targetPath)}: {ex.Message}");
-                        }
-                    }
-                    _ = RefreshFileListAsync();
-                    CustomMessageBox.Show($"同步完成，共同步 {dialog.SelectedTargets.Count} 个文件", "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
                 }
+
+                foreach (var targetPath in fileDialog.SelectedTargets)
+                {
+                    try
+                    {
+                        System.IO.File.Copy(sourceItem.FilePath, targetPath, true);
+                        _logService.Log("同步角色文件", "成功", $"{System.IO.Path.GetFileName(sourceItem.FilePath)} → {System.IO.Path.GetFileName(targetPath)}");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logService.Log("同步角色文件", "失败", $"{System.IO.Path.GetFileName(targetPath)}: {ex.Message}");
+                    }
+                }
+                _ = RefreshFileListAsync();
+                CustomMessageBox.Show($"同步完成，共同步 {fileDialog.SelectedTargets.Count} 个文件", "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
 
@@ -504,23 +545,6 @@ namespace EVESyncTool
                 _logForm.Close();
                 _logForm = null;
                 _logService.Log("关闭操作日志窗口", "成功", "");
-            }
-        }
-
-        private void BtnSettings_Click(object sender, EventArgs e)
-        {
-            var settings = _configManager.GetSyncSettings();
-            var savedSelections = settings.SelectedPartialSettings ?? new List<string>();
-
-            using (var dialog = new SyncDialog("覆盖设置", "全局", null, savedSelections))
-            {
-                if (dialog.ShowDialog(this) == DialogResult.OK)
-                {
-                    settings.SelectedPartialSettings = dialog.SelectedSettings;
-                    _configManager.SaveSyncSettings(settings);
-                    CustomMessageBox.Show($"已保存 {dialog.SelectedSettings.Count} 类设置", "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    _logService.Log("覆盖设置", "已保存", $"共 {dialog.SelectedSettings.Count} 类设置");
-                }
             }
         }
 

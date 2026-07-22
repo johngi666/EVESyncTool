@@ -1,76 +1,65 @@
-﻿using EVESyncTool.Core.Mapping;
-using EVESyncTool.Dialogs.Common;
+﻿using EVESyncTool.Dialogs.Common;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
-using System.Linq;
 using System.Windows.Forms;
 
 namespace EVESyncTool.Dialogs.Sync
 {
-    public partial class SyncDialog : Form
+    public class SyncDialog : Form
     {
         private readonly string _sourceName;
         private readonly string _targetFolder;
         private readonly List<FileTargetItem> _targets;
-        private readonly List<string> _savedSelections;
+        private readonly Dictionary<string, string> _userRemarks;  // ← 新增：用户备注字典
         private Dictionary<string, CheckBox> _checkBoxes = new Dictionary<string, CheckBox>();
         private Button btnConfirm;
         private Button btnCancel;
         private Button btnSelectAll;
-        private Button btnDeselectAll;
         private FlowLayoutPanel categoryPanel;
         private Label lblInfo;
         private Label lblTargetInfo;
-        private ToolTip toolTip = new ToolTip();
         private Panel scrollContainer;
 
-        public List<string> SelectedSettings { get; private set; } = new List<string>();
         public List<string> SelectedTargets { get; private set; } = new List<string>();
 
+        // ===== 原有构造函数 =====
         public SyncDialog(string sourceName, string targetFolder)
             : this(sourceName, targetFolder, null, null)
         {
         }
 
-        public SyncDialog(string sourceName, string sourcePath, List<FileTargetItem> targets)
-            : this(sourceName, Path.GetFileName(Path.GetDirectoryName(sourcePath)), targets, null)
+        public SyncDialog(string sourceName, string targetFolder, List<FileTargetItem> targets)
+            : this(sourceName, targetFolder, targets, null)
         {
         }
 
-        public SyncDialog(
-            string sourceName,
-            string targetFolder,
-            List<FileTargetItem> targets,
-            List<string> savedSelections)
+        // ===== 新增构造函数（带备注字典） =====
+        public SyncDialog(string sourceName, string targetFolder, List<FileTargetItem> targets, Dictionary<string, string> userRemarks)
         {
             _sourceName = sourceName;
             _targetFolder = targetFolder;
             _targets = targets ?? new List<FileTargetItem>();
-            _savedSelections = savedSelections ?? new List<string>();
+            _userRemarks = userRemarks ?? new Dictionary<string, string>();
 
             InitializeComponent();
-
             if (_targets.Count > 0)
             {
                 LoadTargets();
-            }
-            else
-            {
-                LoadMappings();
             }
         }
 
         private void InitializeComponent()
         {
             this.Text = "选择同步目标";
-            this.Size = new Size(600, 520);
-            this.MinimumSize = new Size(550, 400);
+            this.Size = new Size(400, 480);
+            this.MinimumSize = new Size(400, 400);
             this.StartPosition = FormStartPosition.CenterParent;
             this.FormBorderStyle = FormBorderStyle.None;
             this.BackColor = Color.White;
 
+            // ===== 标题栏 =====
             Panel titleBar = new Panel
             {
                 Height = 35,
@@ -80,7 +69,7 @@ namespace EVESyncTool.Dialogs.Sync
 
             Label titleLabel = new Label
             {
-                Text = "选择要同步的目标",
+                Text = "同步到>>>",
                 ForeColor = Color.White,
                 Font = new Font("Microsoft YaHei", 12, FontStyle.Bold),
                 AutoSize = true,
@@ -104,9 +93,10 @@ namespace EVESyncTool.Dialogs.Sync
             titleBar.Controls.Add(titleLabel);
             titleBar.Controls.Add(btnClose);
 
+            // ===== 信息标签 =====
             lblInfo = new Label
             {
-                Text = $"来源: {_sourceName} → 目标: {_targetFolder}",
+                Text = $"来源: {_sourceName}",
                 Font = new Font("Microsoft YaHei", 10),
                 ForeColor = Color.FromArgb(70, 130, 180),
                 AutoSize = true,
@@ -122,6 +112,7 @@ namespace EVESyncTool.Dialogs.Sync
                 Location = new Point(15, 72)
             };
 
+            // ===== 全选按钮 =====
             btnSelectAll = new Button
             {
                 Text = "全选",
@@ -134,33 +125,18 @@ namespace EVESyncTool.Dialogs.Sync
                 Cursor = Cursors.Hand
             };
             btnSelectAll.FlatAppearance.BorderSize = 0;
-            btnSelectAll.Click += (s, e) => SetAllCheckBoxes(true);
+            btnSelectAll.Click += (s, e) => ToggleAllCheckBoxes();
 
-            btnDeselectAll = new Button
-            {
-                Text = "全不选",
-                Size = new Size(70, 28),
-                Location = new Point(90, 98),
-                FlatStyle = FlatStyle.Flat,
-                BackColor = Color.FromArgb(100, 100, 100),
-                ForeColor = Color.White,
-                Font = new Font("Microsoft YaHei", 9, FontStyle.Bold),
-                Cursor = Cursors.Hand
-            };
-            btnDeselectAll.FlatAppearance.BorderSize = 0;
-            btnDeselectAll.Click += (s, e) => SetAllCheckBoxes(false);
-
-            // ★★★ 滚动容器 ★★★
+            // ===== 滚动容器 =====
             scrollContainer = new Panel
             {
                 Location = new Point(15, 135),
-                Size = new Size(570, 290),
+                Size = new Size(this.Width - 30, this.Height - 205),
                 AutoScroll = true,
                 BackColor = Color.FromArgb(248, 248, 248),
                 BorderStyle = BorderStyle.FixedSingle
             };
 
-            // ★★★ FlowLayoutPanel：AutoSize = false，手动控制大小 ★★★
             categoryPanel = new FlowLayoutPanel
             {
                 Dock = DockStyle.Top,
@@ -174,17 +150,17 @@ namespace EVESyncTool.Dialogs.Sync
             };
             scrollContainer.Controls.Add(categoryPanel);
 
-            // ★★★ 当容器内容变化时，更新 panel 高度 ★★★
             scrollContainer.Resize += (s, e) =>
             {
                 categoryPanel.Width = scrollContainer.Width - 20;
             };
 
+            // ===== 底部按钮 =====
             btnConfirm = new Button
             {
-                Text = "执行同步",
-                Size = new Size(120, 35),
-                Location = new Point(this.Width - 195, 438),
+                Text = "确认同步",
+                Size = new Size(80, 35),
+                Location = new Point(this.Width - 195, this.Height - 55),
                 FlatStyle = FlatStyle.Flat,
                 BackColor = Color.FromArgb(50, 205, 50),
                 ForeColor = Color.White,
@@ -197,8 +173,8 @@ namespace EVESyncTool.Dialogs.Sync
             btnCancel = new Button
             {
                 Text = "取消",
-                Size = new Size(100, 35),
-                Location = new Point(this.Width - 100, 438),
+                Size = new Size(80, 35),
+                Location = new Point(this.Width - 100, this.Height - 55),
                 FlatStyle = FlatStyle.Flat,
                 BackColor = Color.FromArgb(100, 100, 100),
                 ForeColor = Color.White,
@@ -208,15 +184,7 @@ namespace EVESyncTool.Dialogs.Sync
             btnCancel.FlatAppearance.BorderSize = 0;
             btnCancel.Click += (s, e) => { DialogResult = DialogResult.Cancel; this.Close(); };
 
-            Label lblSummary = new Label
-            {
-                Text = "提示: 只勾选需要同步的目标，未勾选的将保持不变",
-                Font = new Font("Microsoft YaHei", 9),
-                ForeColor = Color.Gray,
-                AutoSize = true,
-                Location = new Point(15, 445)
-            };
-
+            // ===== 内容面板 =====
             Panel contentPanel = new Panel
             {
                 Dock = DockStyle.Fill,
@@ -226,21 +194,19 @@ namespace EVESyncTool.Dialogs.Sync
             contentPanel.Controls.Add(lblInfo);
             contentPanel.Controls.Add(lblTargetInfo);
             contentPanel.Controls.Add(btnSelectAll);
-            contentPanel.Controls.Add(btnDeselectAll);
             contentPanel.Controls.Add(scrollContainer);
             contentPanel.Controls.Add(btnConfirm);
             contentPanel.Controls.Add(btnCancel);
-            contentPanel.Controls.Add(lblSummary);
 
             this.Controls.Add(contentPanel);
 
+            // ===== 窗口自适应 =====
             this.Resize += (s, e) =>
             {
                 btnClose.Location = new Point(this.Width - 40, 0);
                 scrollContainer.Size = new Size(this.Width - 30, this.Height - 205);
-                btnConfirm.Location = new Point(this.Width - 195, this.Height - 62);
-                btnCancel.Location = new Point(this.Width - 100, this.Height - 62);
-                lblSummary.Location = new Point(15, this.Height - 55);
+                btnConfirm.Location = new Point(this.Width - 195, this.Height - 55);
+                btnCancel.Location = new Point(this.Width - 100, this.Height - 55);
                 categoryPanel.Width = scrollContainer.Width - 20;
             };
         }
@@ -252,23 +218,31 @@ namespace EVESyncTool.Dialogs.Sync
             categoryPanel.Controls.Clear();
             categoryPanel.Height = 10;
 
-            Label titleLabel = new Label
-            {
-                Text = "── 选择要同步的目标文件 ──",
-                Font = new Font("Microsoft YaHei", 10, FontStyle.Bold),
-                ForeColor = Color.FromArgb(70, 130, 180),
-                AutoSize = true,
-                Margin = new Padding(0, 8, 0, 4)
-            };
-            categoryPanel.Controls.Add(titleLabel);
-
-            int totalHeight = 30; // 标题高度
+            int totalHeight = 10;
 
             foreach (var target in _targets)
             {
+                // ===== 获取显示名称（备注优先） =====
+                string displayText;
+                if (!string.IsNullOrEmpty(target.UserId) && _userRemarks != null && _userRemarks.TryGetValue(target.UserId, out string remark) && !string.IsNullOrWhiteSpace(remark))
+                {
+                    // 有备注：显示 "备注 (数字ID)"
+                    displayText = $"{remark} ({target.UserId})";
+                }
+                else if (!string.IsNullOrEmpty(target.DisplayName))
+                {
+                    // 无备注但有DisplayName
+                    displayText = target.DisplayName;
+                }
+                else
+                {
+                    // 兜底
+                    displayText = Path.GetFileName(target.FileName);
+                }
+
                 CheckBox cb = new CheckBox
                 {
-                    Text = target.DisplayName ?? Path.GetFileName(target.FileName),
+                    Text = displayText,
                     Font = new Font("Microsoft YaHei", 9),
                     AutoSize = true,
                     Checked = true,
@@ -280,98 +254,45 @@ namespace EVESyncTool.Dialogs.Sync
                 totalHeight += 26;
             }
 
-            // ★★★ 更新 panel 高度，让滚动条正确工作 ★★★
             categoryPanel.Height = Math.Max(totalHeight + 20, scrollContainer.Height - 10);
         }
 
-        private void LoadMappings()
+        private void ToggleAllCheckBoxes()
         {
-            lblTargetInfo.Text = "选择要覆盖的设置项";
-
-            var categories = SettingMapping.GetAllCategories();
-            _checkBoxes.Clear();
-            categoryPanel.Controls.Clear();
-            categoryPanel.Height = 10;
-
-            int totalHeight = 10;
-
-            foreach (var category in categories)
+            bool allChecked = true;
+            foreach (var cb in _checkBoxes.Values)
             {
-                Label categoryTitle = new Label
+                if (!cb.Checked)
                 {
-                    Text = $"── {category} ──",
-                    Font = new Font("Microsoft YaHei", 10, FontStyle.Bold),
-                    ForeColor = Color.FromArgb(70, 130, 180),
-                    AutoSize = true,
-                    Margin = new Padding(0, 8, 0, 4)
-                };
-                categoryPanel.Controls.Add(categoryTitle);
-                totalHeight += 30;
-
-                var mappings = SettingMapping.GetAll().Where(m => m.Category == category).ToList();
-                foreach (var mapping in mappings)
-                {
-                    CheckBox cb = new CheckBox
-                    {
-                        Text = mapping.DisplayName,
-                        Font = new Font("Microsoft YaHei", 9),
-                        AutoSize = true,
-                        Checked = true,
-                        Margin = new Padding(20, 2, 0, 2),
-                        Tag = mapping
-                    };
-                    if (!string.IsNullOrEmpty(mapping.Description))
-                    {
-                        cb.MouseHover += (s, e) => toolTip.SetToolTip(cb, mapping.Description);
-                    }
-                    categoryPanel.Controls.Add(cb);
-                    _checkBoxes[mapping.DisplayName] = cb;
-                    totalHeight += 26;
+                    allChecked = false;
+                    break;
                 }
             }
 
-            // ★★★ 更新 panel 高度，让滚动条正确工作 ★★★
-            categoryPanel.Height = Math.Max(totalHeight + 20, scrollContainer.Height - 10);
-        }
-
-        private void SetAllCheckBoxes(bool checkedState)
-        {
+            bool newState = !allChecked;
             foreach (var cb in _checkBoxes.Values)
             {
-                cb.Checked = checkedState;
+                cb.Checked = newState;
             }
+
+            btnSelectAll.Text = newState ? "全不选" : "全选";
         }
 
         private void BtnConfirm_Click(object sender, EventArgs e)
         {
-            SelectedSettings.Clear();
             SelectedTargets.Clear();
 
             foreach (var kvp in _checkBoxes)
             {
                 if (kvp.Value.Checked)
                 {
-                    string key = kvp.Key;
-                    if (_targets.Count > 0)
-                    {
-                        SelectedTargets.Add(key);
-                    }
-                    else
-                    {
-                        SelectedSettings.Add(key);
-                    }
+                    SelectedTargets.Add(kvp.Key);
                 }
             }
 
-            if (_targets.Count > 0 && SelectedTargets.Count == 0)
+            if (SelectedTargets.Count == 0)
             {
                 CustomMessageBox.Show("请至少选择一个要同步的目标文件", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            if (_targets.Count == 0 && SelectedSettings.Count == 0)
-            {
-                CustomMessageBox.Show("请至少选择一个要覆盖的设置项", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
@@ -384,11 +305,20 @@ namespace EVESyncTool.Dialogs.Sync
     {
         public string FileName { get; set; }
         public string DisplayName { get; set; }
+        public string UserId { get; set; }  // ← 新增：用户数字ID，用于匹配备注
 
         public FileTargetItem(string fileName, string displayName)
         {
             FileName = fileName;
             DisplayName = displayName;
+            UserId = null;  // 默认为空
+        }
+
+        public FileTargetItem(string fileName, string displayName, string userId)
+        {
+            FileName = fileName;
+            DisplayName = displayName;
+            UserId = userId;
         }
     }
 }

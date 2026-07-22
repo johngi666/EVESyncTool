@@ -123,6 +123,57 @@ namespace EVESyncTool.Core.Config
             _config.SyncSettings = settings;
             Save();
         }
+
+        /// <summary>
+        /// 获取所有用户备注
+        /// </summary>
+        public Dictionary<string, string> GetUserRemarks()
+        {
+            return _config.UserRemarks ?? new Dictionary<string, string>();
+        }
+
+        /// <summary>
+        /// 保存单个用户备注
+        /// </summary>
+        public void SaveUserRemark(string userId, string remark)
+        {
+            if (_config.UserRemarks == null)
+                _config.UserRemarks = new Dictionary<string, string>();
+
+            if (string.IsNullOrWhiteSpace(remark))
+            {
+                // 如果备注为空，删除该条目
+                if (_config.UserRemarks.ContainsKey(userId))
+                    _config.UserRemarks.Remove(userId);
+            }
+            else
+            {
+                _config.UserRemarks[userId] = remark;
+            }
+            Save();
+        }
+
+        /// <summary>
+        /// 获取用户备注显示名（有备注显示备注，无备注显示数字ID）
+        /// </summary>
+        public string GetUserDisplayName(string userId)
+        {
+            var remarks = GetUserRemarks();
+            if (remarks != null && remarks.TryGetValue(userId, out string remark) && !string.IsNullOrWhiteSpace(remark))
+                return remark;
+            return userId;
+        }
+
+        /// <summary>
+        /// 获取用户备注显示名（带原ID后缀，用于同步对话框）
+        /// </summary>
+        public string GetUserDisplayNameWithId(string userId)
+        {
+            var remarks = GetUserRemarks();
+            if (remarks != null && remarks.TryGetValue(userId, out string remark) && !string.IsNullOrWhiteSpace(remark))
+                return $"{remark} ({userId})";
+            return userId;
+        }
     }
 
     /// <summary>
@@ -135,5 +186,10 @@ namespace EVESyncTool.Core.Config
         public Dictionary<string, string> CharacterNames { get; set; } = new Dictionary<string, string>();
         public List<ConfigScheme> ConfigSchemes { get; set; } = new List<ConfigScheme>();
         public SyncSettings SyncSettings { get; set; } = new SyncSettings();
+
+        /// <summary>
+        /// 用户备注字典 Key: 用户数字ID, Value: 备注文字
+        /// </summary>
+        public Dictionary<string, string> UserRemarks { get; set; } = new Dictionary<string, string>();
     }
 }
