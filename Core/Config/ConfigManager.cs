@@ -25,6 +25,14 @@ namespace EVESyncTool.Core.Config
             _debounceTimer = new System.Timers.Timer(500);
             _debounceTimer.AutoReset = false;
             _debounceTimer.Elapsed += (s, e) => FlushSave();
+
+            // 默认备份路径：桌面/EVE配置备份
+            // （首次运行写入 json 的 BackupPath 字段，用户可直接改该行切换备份位置）
+            if (string.IsNullOrEmpty(_config.BackupPath))
+            {
+                _config.BackupPath = GetBackupPath();
+                Save();
+            }
         }
 
         /// <summary>
@@ -190,10 +198,11 @@ namespace EVESyncTool.Core.Config
 
         /// <summary>
         /// 获取备份路径（默认桌面/EVE配置备份）
+        /// 配置了 BackupPath 就用配置的（目录不存在时备份时会自动创建）
         /// </summary>
         public string GetBackupPath()
         {
-            if (!string.IsNullOrEmpty(_config.BackupPath) && Directory.Exists(_config.BackupPath))
+            if (!string.IsNullOrEmpty(_config.BackupPath))
                 return _config.BackupPath;
 
             string desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
