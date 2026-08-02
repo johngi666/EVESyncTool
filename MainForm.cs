@@ -36,6 +36,7 @@ namespace EVESyncTool
         private readonly LogService _logService;
         private readonly FolderService _folderService;
         private readonly FileListRefreshService _fileListRefreshService;
+        private readonly FileListService _fileListService;
         private readonly BackupService _backupService;
         private readonly SyncService _syncService;
         private readonly DataGridViewHandler _dataGridViewHandler;
@@ -74,7 +75,7 @@ namespace EVESyncTool
 
             var folderFinder = new FolderFinder(ServerInfo.ToKeywordMap(), _logService.Log, null);
 
-            var fileListService = new FileListService(
+            _fileListService = new FileListService(
                 _httpClient,
                 ServerInfo.ToDataSourceMap(),
                 _currentServer,
@@ -85,7 +86,7 @@ namespace EVESyncTool
             var fileSyncManager = new FileSyncManager();
 
             _fileListRefreshService = new FileListRefreshService(
-                fileListService,
+                _fileListService,
                 _configManager,
                 _logService,
                 () => _currentFolder,
@@ -277,6 +278,9 @@ namespace EVESyncTool
         {
             _currentServer = newServer;
             _configManager.SaveLastServer(newServer);
+
+            // ★ 同步角色名查询的服务器，否则会用旧服务器查询新服务器的角色 → 一直"查询中"
+            _fileListService.UpdateServer(newServer);
 
             await _folderService.SwitchServerAsync(
                 newServer,
