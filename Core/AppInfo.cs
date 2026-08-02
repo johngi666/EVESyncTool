@@ -26,10 +26,17 @@ namespace EVESyncTool.Core
         public const string ReleaseDate = "2026年8月3日";
 
         /// <summary>
-        /// 远端版本检查 URL（GitHub 仓库根目录下的 version.json 原始文件）
+        /// 远端版本检查地址列表（按顺序尝试，哪个能访问用哪个）
+        /// 1. raw.githubusercontent.com（GitHub 原始文件，国内不稳定）
+        /// 2. cdn.jsdelivr.net（GitHub 的 CDN 镜像，国内通常可达）
+        /// 3. github.com/raw（GitHub 主站路径，有时可用）
         /// </summary>
-        public const string UpdateCheckUrl =
-            "https://raw.githubusercontent.com/johngi666/EVESyncTool/main/version.json";
+        public static readonly string[] UpdateCheckUrls =
+        {
+            "https://raw.githubusercontent.com/johngi666/EVESyncTool/main/version.json",
+            "https://cdn.jsdelivr.net/gh/johngi666/EVESyncTool@main/version.json",
+            "https://github.com/johngi666/EVESyncTool/raw/main/version.json"
+        };
 
         /// <summary>
         /// 发布页面 URL

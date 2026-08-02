@@ -24,6 +24,7 @@ using System.Drawing;
 using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -173,6 +174,7 @@ namespace EVESyncTool
             this.Controls.Add(_titleBarBuilder.Build());
             _titleBarBuilder.BtnHelp.Click += BtnHelp_Click;
             _titleBarBuilder.BtnLog.Click += BtnLog_Click;
+            _titleBarBuilder.BtnCheckUpdate.Click += BtnCheckUpdate_Click;
             _titleBarBuilder.BtnTheme.Click += BtnTheme_Click;
             // 设置按钮已移除
             // _titleBarBuilder.BtnSettings.Click += BtnSettings_Click;
@@ -552,48 +554,77 @@ namespace EVESyncTool
             _logService.Log("主题切换", "成功", ThemeManager.IsDarkMode ? "暗色模式" : "亮色模式");
         }
 
+        private async void BtnCheckUpdate_Click(object sender, EventArgs e)
+        {
+            _logService.Log("版本检查", "手动触发", "");
+            await CheckForUpdatesAsync(showResultWhenUpToDate: true);
+        }
+
         private void ApplyTheme(bool isDark)
         {
             _titleBarBuilder.ApplyTheme(isDark);
             ThemeManager.ApplyToForm(this);
         }
 
-        private async Task CheckForUpdatesAsync()
+        private async Task CheckForUpdatesAsync(bool showResultWhenUpToDate = false)
         {
-            try
+            string lastError = null;
+
+            // 多地址轮询：依次尝试，哪个能访问用哪个
+            foreach (string url in AppInfo.UpdateCheckUrls)
             {
-                string json = await _httpClient.GetStringAsync(AppInfo.UpdateCheckUrl);
-                using var doc = JsonDocument.Parse(json);
-                var root = doc.RootElement;
-
-                string remoteVersion = root.GetProperty("version").GetString();
-                string downloadUrl = root.TryGetProperty("url", out var u) ? u.GetString() : AppInfo.ReleasesUrl;
-                string notes = root.TryGetProperty("notes", out var n) ? n.GetString() : "";
-
-                if (IsNewerVersion(remoteVersion, AppInfo.Version))
+                try
                 {
-                    // 同一版本本次运行只提醒一次（点"稍后提醒"后不再重复弹）
-                    if (remoteVersion == _lastNotifiedVersion)
-                        return;
-                    _lastNotifiedVersion = remoteVersion;
+                    using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+                    string json = await _httpClient.GetStringAsync(url, cts.Token);
+                    using var doc = JsonDocument.Parse(json);
+                    var root = doc.RootElement;
 
-                    this.Invoke(new Action(() =>
+                    string remoteVersion = root.GetProperty("version").GetString();
+                    string downloadUrl = root.TryGetProperty("url", out var u) ? u.GetString() : AppInfo.ReleasesUrl;
+                    string notes = root.TryGetProperty("notes", out var n) ? n.GetString() : "";
+
+                    if (IsNewerVersion(remoteVersion, AppInfo.Version))
                     {
-                        using var dialog = new UpdateDialog(remoteVersion, notes, downloadUrl);
-                        dialog.Owner = this;
-                        dialog.ShowDialog();
-                    }));
-                    _logService.Log("版本检查", "发现新版本", remoteVersion);
+                        // 同一版本本次运行只提醒一次（点"稍后提醒"后不再重复弹）
+                        if (remoteVersion == _lastNotifiedVersion)
+                            return;
+                        _lastNotifiedVersion = remoteVersion;
+
+                        this.Invoke(new Action(() =>
+                        {
+                            using var dialog = new UpdateDialog(remoteVersion, notes, downloadUrl);
+                            dialog.Owner = this;
+                            dialog.ShowDialog();
+                        }));
+                        _logService.Log("版本检查", "发现新版本", remoteVersion);
+                    }
+                    else
+                    {
+                        _logService.Log("版本检查", "已是最新", AppInfo.Version);
+                        if (showResultWhenUpToDate)
+                        {
+                            this.Invoke(new Action(() =>
+                                CustomMessageBox.Show($"当前已是最新版本 {AppInfo.Version}", "版本检查",
+                                    MessageBoxButtons.OK, MessageBoxIcon.Information)));
+                        }
+                    }
+                    return; // 任一地址成功即结束
                 }
-                else
+                catch (Exception ex)
                 {
-                    _logService.Log("版本检查", "已是最新", AppInfo.Version);
+                    lastError = ex.Message;
+                    // 尝试下一个地址
                 }
             }
-            catch (Exception ex)
+
+            // 所有地址都失败
+            _logService.Log("版本检查", "失败", lastError ?? "无法连接更新服务器");
+            if (showResultWhenUpToDate)
             {
-                // 网络不通或文件不存在时记录日志，不影响正常使用
-                _logService.Log("版本检查", "失败", ex.Message);
+                this.Invoke(new Action(() =>
+                    CustomMessageBox.Show($"检查更新失败，请检查网络连接。\n\n{lastError}", "版本检查",
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning)));
             }
         }
 

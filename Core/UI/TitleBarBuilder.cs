@@ -14,10 +14,12 @@ namespace EVESyncTool.Core.UI
         private readonly Panel _titleBar;
         private readonly Button _btnHelp;
         private readonly Button _btnLog;
+        private readonly Button _btnCheckUpdate;
         private readonly Button _btnTheme;
 
         public Button BtnHelp => _btnHelp;
         public Button BtnLog => _btnLog;
+        public Button BtnCheckUpdate => _btnCheckUpdate;
         public Button BtnTheme => _btnTheme;
 
         public TitleBarBuilder(Form owner)
@@ -78,6 +80,20 @@ namespace EVESyncTool.Core.UI
             };
             _btnLog.FlatAppearance.BorderSize = 0;
 
+            // 检查更新按钮
+            _btnCheckUpdate = new Button
+            {
+                Text = "🔄检查更新",
+                FlatStyle = FlatStyle.Flat,
+                ForeColor = Color.White,
+                BackColor = Color.Transparent,
+                Font = new Font("Microsoft YaHei", 9),
+                Size = new Size(85, 25),
+                Location = new Point(440, 4),
+                Cursor = Cursors.Hand
+            };
+            _btnCheckUpdate.FlatAppearance.BorderSize = 0;
+
             // 暗色模式切换按钮
             _btnTheme = new Button
             {
@@ -134,6 +150,7 @@ namespace EVESyncTool.Core.UI
             _titleBar.Controls.Add(titleLabel);
             _titleBar.Controls.Add(_btnHelp);
             _titleBar.Controls.Add(_btnLog);
+            _titleBar.Controls.Add(_btnCheckUpdate);
             _titleBar.Controls.Add(_btnTheme);
             _titleBar.Controls.Add(btnClose);
             _titleBar.Controls.Add(btnMinimize);
