@@ -5,7 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
 
-namespace EVESyncTool.Core.Services.UI
+namespace EVESyncTool.Core.Services.Grid
 {
     public class DataGridViewHandler
     {
