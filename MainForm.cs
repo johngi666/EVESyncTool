@@ -58,6 +58,10 @@ namespace EVESyncTool
         private HelpForm _helpForm;
         private LogForm _logForm;
 
+        // 运行期间持续检查更新（每 20 分钟一次，同一版本只提醒一次）
+        private readonly System.Windows.Forms.Timer _updateCheckTimer;
+        private string _lastNotifiedVersion;
+
         public string CurrentFolder => _currentFolder;
 
         public MainForm()
@@ -148,6 +152,12 @@ namespace EVESyncTool
             _logService.Log("程序启动", "成功", "");
             _ = AutoFindFolderAsync();
             _serverStatusManager.Start();
+
+            // 启动时立即检查一次，之后每 20 分钟再查（网络不稳定时提高成功率）
+            _updateCheckTimer = new System.Windows.Forms.Timer();
+            _updateCheckTimer.Interval = 20 * 60 * 1000;
+            _updateCheckTimer.Tick += async (s, e) => await CheckForUpdatesAsync();
+            _updateCheckTimer.Start();
             _ = CheckForUpdatesAsync();
         }
 
@@ -184,7 +194,11 @@ namespace EVESyncTool
 
             this.Controls.Add(mainContainer);
 
-            this.FormClosing += (s, e) => _serverStatusManager?.Stop();
+            this.FormClosing += (s, e) =>
+            {
+                _serverStatusManager?.Stop();
+                _updateCheckTimer?.Stop();
+            };
         }
 
         private void BindEvents()
@@ -558,6 +572,11 @@ namespace EVESyncTool
 
                 if (IsNewerVersion(remoteVersion, AppInfo.Version))
                 {
+                    // 同一版本本次运行只提醒一次（点"稍后提醒"后不再重复弹）
+                    if (remoteVersion == _lastNotifiedVersion)
+                        return;
+                    _lastNotifiedVersion = remoteVersion;
+
                     this.Invoke(new Action(() =>
                     {
                         using var dialog = new UpdateDialog(remoteVersion, notes, downloadUrl);
