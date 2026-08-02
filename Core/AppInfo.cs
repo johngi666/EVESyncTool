@@ -8,17 +8,16 @@ namespace EVESyncTool.Core
         /// <summary>
         /// 当前版本号（发布时修改此处即可）
         /// </summary>
-        public const string Version = "v5.44";
+        public const string Version = "v5.45";
 
         /// <summary>
         /// 更新内容（每行用 \n 换行）
         /// </summary>
         public const string ReleaseNotes =
-            "   - 自动更新改为运行期间持续检测（每分钟一次）\n" +
-            "   - 清理重复 AppConfig 与死代码链\n" +
-            "   - ConfigScheme 移入 Core.Config 统一管理\n" +
-            "   - DataGridViewHandler 归入 Services.Grid\n" +
-            "   - 版本检查失败时记录到操作日志";
+            "   - 暗色模式更名夜间模式\n" +
+            "   - 标题栏夜间模式按钮加文字提示\n" +
+            "   - 自动更新多地址轮询（jsDelivr CDN 加速）\n" +
+            "   - 标题栏新增手动检查更新按钮";
 
         /// <summary>
         /// 更新日期
