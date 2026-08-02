@@ -18,7 +18,7 @@ namespace EVESyncTool.Core.Services.ServerStatus
         {
             { "infinity", false },
             { "serenity", false },
-            { "tq", false }
+            { "tranquility", false }
         };
 
         private bool _isFirstStatusCheck = true;
@@ -89,7 +89,7 @@ namespace EVESyncTool.Core.Services.ServerStatus
             try
             {
                 string url = server.StatusUrl;
-                int timeoutSeconds = (serverKey == "tq") ? 5 : 10;
+                int timeoutSeconds = (serverKey == "tranquility") ? 5 : 10;
 
                 using (var request = new HttpRequestMessage(HttpMethod.Get, url))
                 {

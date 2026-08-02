@@ -15,20 +15,17 @@ namespace EVESyncTool.Core.Services.File
     public class FileListService
     {
         private readonly HttpClient _httpClient;
-        private readonly Dictionary<string, string> _serverDataSourceMap;
         private string _currentServer;
         private readonly Action<string, string, string> _logAction;
         private readonly Action _onUpdate;
 
         public FileListService(
             HttpClient httpClient,
-            Dictionary<string, string> serverDataSourceMap,
             string currentServer,
             Action<string, string, string> logAction,
             Action onUpdate)
         {
             _httpClient = httpClient;
-            _serverDataSourceMap = serverDataSourceMap;
             _currentServer = currentServer;
             _logAction = logAction;
             _onUpdate = onUpdate;

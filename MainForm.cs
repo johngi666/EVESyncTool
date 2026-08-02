@@ -77,7 +77,6 @@ namespace EVESyncTool
 
             _fileListService = new FileListService(
                 _httpClient,
-                ServerInfo.ToDataSourceMap(),
                 _currentServer,
                 _logService.Log,
                 null

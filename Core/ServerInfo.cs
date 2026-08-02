@@ -12,7 +12,7 @@ namespace EVESyncTool.Core
         public string DisplayName { get; }   // 下拉框显示名，如 "曙光服 (Infinity)"
         public string StatusName { get; }    // 状态标签短名，如 "曙光服"
         public string Keyword { get; }       // 文件夹查找关键字，如 "infinity"
-        public string DataSource { get; }    // ESI datasource 参数，如 "infinity"/"tq"
+        public string DataSource { get; }    // ESI datasource 参数，如 "infinity"/"tranquility"
         public string EsiBaseUrl { get; }    // ESI API 根地址
         public string StatusUrl { get; }     // 服务器状态查询地址
 
@@ -37,7 +37,7 @@ namespace EVESyncTool.Core
             "https://ali-esi.evepc.163.com/latest/status/?datasource=serenity");
 
         public static readonly ServerInfo Tranquility = new(
-            "国际服 (Tranquility)", "国际服", "tranquility", "tq",
+            "国际服 (Tranquility)", "国际服", "tranquility", "tranquility",
             "https://esi.evetech.net",
             "https://esi.evetech.net/latest/status/");
 
@@ -52,7 +52,7 @@ namespace EVESyncTool.Core
         }
 
         /// <summary>
-        /// 按数据源 key 查找服务器（infinity/serenity/tq，未知回退到曙光服）
+        /// 按数据源 key 查找服务器（infinity/serenity/tranquility，未知回退到曙光服）
         /// </summary>
         public static ServerInfo GetByDataSource(string dataSource)
         {
@@ -65,14 +65,6 @@ namespace EVESyncTool.Core
         public static Dictionary<string, string> ToKeywordMap()
         {
             return All.ToDictionary(s => s.DisplayName, s => s.Keyword);
-        }
-
-        /// <summary>
-        /// 显示名 → ESI 数据源 映射（供 FileListService 使用）
-        /// </summary>
-        public static Dictionary<string, string> ToDataSourceMap()
-        {
-            return All.ToDictionary(s => s.DisplayName, s => s.DataSource);
         }
     }
 }

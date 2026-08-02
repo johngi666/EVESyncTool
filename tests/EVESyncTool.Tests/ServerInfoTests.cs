@@ -23,11 +23,11 @@ public class ServerInfoTests
     }
 
     [Fact]
-    public void GetByDisplayName_Tranquility_UsesTqDataSource()
+    public void GetByDisplayName_Tranquility_UsesTranquilityDataSource()
     {
         var server = ServerInfo.GetByDisplayName("国际服 (Tranquility)");
 
-        Assert.Equal("tq", server.DataSource);
+        Assert.Equal("tranquility", server.DataSource);
         Assert.Equal("tranquility", server.Keyword);
         Assert.Contains("evetech.net", server.EsiBaseUrl);
     }
@@ -68,12 +68,10 @@ public class ServerInfoTests
     }
 
     [Fact]
-    public void ToDataSourceMap_ContainsAllServers()
+    public void GetByDataSource_Tranquility_ReturnsInternationalServer()
     {
-        var map = ServerInfo.ToDataSourceMap();
+        var server = ServerInfo.GetByDataSource("tranquility");
 
-        Assert.Equal(3, map.Count);
-        Assert.Equal("infinity", map["曙光服 (Infinity)"]);
-        Assert.Equal("tq", map["国际服 (Tranquility)"]);
+        Assert.Equal("国际服 (Tranquility)", server.DisplayName);
     }
 }
