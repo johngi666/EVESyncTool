@@ -1,5 +1,5 @@
 {
-  "version": "v5.43",
+  "version": "v5.44",
   "url": "https://github.com/johngi666/EVESyncTool/releases/latest",
-  "notes": "优化：MainForm瘦身、清理死代码、服务器信息集中管理、弹窗标题栏统一基类、新增32个单元测试、服务目录命名统一"
+  "notes": "自动更新改为运行期间持续检测（每分钟一次）、清理重复AppConfig与死代码链、ConfigScheme移入Core.Config、DataGridViewHandler归入Services.Grid、版本检查失败时记录日志"
 }

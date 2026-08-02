@@ -8,18 +8,17 @@ namespace EVESyncTool.Core
         /// <summary>
         /// 当前版本号（发布时修改此处即可）
         /// </summary>
-        public const string Version = "v5.43";
+        public const string Version = "v5.44";
 
         /// <summary>
         /// 更新内容（每行用 \n 换行）
         /// </summary>
         public const string ReleaseNotes =
-            "   - 优化：MainForm 瘦身，同步逻辑下沉服务层\n" +
-            "   - 优化：清理死代码（删除未使用功能）\n" +
-            "   - 优化：服务器信息集中管理（新增服务器只需改一处）\n" +
-            "   - 优化：弹窗标题栏统一基类，去掉重复代码\n" +
-            "   - 优化：新增 32 个单元测试\n" +
-            "   - 优化：服务目录命名统一";
+            "   - 自动更新改为运行期间持续检测（每分钟一次）\n" +
+            "   - 清理重复 AppConfig 与死代码链\n" +
+            "   - ConfigScheme 移入 Core.Config 统一管理\n" +
+            "   - DataGridViewHandler 归入 Services.Grid\n" +
+            "   - 版本检查失败时记录到操作日志";
 
         /// <summary>
         /// 更新日期
