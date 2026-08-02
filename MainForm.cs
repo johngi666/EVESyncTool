@@ -571,9 +571,10 @@ namespace EVESyncTool
                     _logService.Log("版本检查", "已是最新", AppInfo.Version);
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // 静默处理——网络不通或文件不存在时不影响正常使用
+                // 网络不通或文件不存在时记录日志，不影响正常使用
+                _logService.Log("版本检查", "失败", ex.Message);
             }
         }
 
