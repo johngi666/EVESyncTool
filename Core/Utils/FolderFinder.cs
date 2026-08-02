@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Win32;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -53,7 +54,72 @@ namespace EVESyncTool.Core.Utils
         }
 
         /// <summary>
-        /// 快速查找（优先 LOCALAPPDATA，再 C/D/E 盘）
+        /// 通过 Windows 注册表查找 EVE 安装路径
+        /// </summary>
+        private string FindFromRegistry()
+        {
+            try
+            {
+                // CCP Launcher v2+ 存储路径
+                using (var key = Registry.CurrentUser.OpenSubKey(@"Software\CCP\EVEOnline"))
+                {
+                    if (key != null)
+                    {
+                        var cacheFolder = key.GetValue("CacheFolder") as string;
+                        if (!string.IsNullOrEmpty(cacheFolder))
+                        {
+                            // CacheFolder 通常是 %LOCALAPPDATA%\CCP\EVE，直接检查
+                            string expanded = Environment.ExpandEnvironmentVariables(cacheFolder);
+                            if (Directory.Exists(expanded))
+                            {
+                                // 搜索该目录下的 settings_Default
+                                try
+                                {
+                                    foreach (string dir in Directory.GetDirectories(expanded, "*", SearchOption.TopDirectoryOnly))
+                                    {
+                                        string settingsPath = Path.Combine(dir, "settings_Default");
+                                        if (Directory.Exists(settingsPath))
+                                            return settingsPath;
+                                    }
+                                }
+                                catch { }
+                            }
+                        }
+                    }
+                }
+
+                // 备用：检查 CCP 旧版注册表
+                using (var key = Registry.CurrentUser.OpenSubKey(@"Software\CCP"))
+                {
+                    if (key != null)
+                    {
+                        foreach (string subKeyName in key.GetSubKeyNames())
+                        {
+                            if (subKeyName.Contains("EVE", StringComparison.OrdinalIgnoreCase))
+                            {
+                                using (var subKey = key.OpenSubKey(subKeyName))
+                                {
+                                    var path = subKey?.GetValue("Path") as string
+                                        ?? subKey?.GetValue("InstallPath") as string;
+                                    if (!string.IsNullOrEmpty(path))
+                                    {
+                                        string settingsPath = Path.Combine(path, "settings_Default");
+                                        if (Directory.Exists(settingsPath))
+                                            return settingsPath;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception) { }
+
+            return null;
+        }
+
+        /// <summary>
+        /// 快速查找（注册表 → LOCALAPPDATA → 已知路径 → C/D/E 盘）
         /// </summary>
         public string QuickFind(string serverName)
         {
@@ -61,6 +127,14 @@ namespace EVESyncTool.Core.Utils
                 return null;
 
             _logAction?.Invoke("快速查找", $"查找 {serverName} 配置", "");
+
+            // ===== 0. 优先查注册表 =====
+            string regPath = FindFromRegistry();
+            if (regPath != null)
+            {
+                _logAction?.Invoke("快速查找", "注册表命中", regPath);
+                return regPath;
+            }
 
             // ===== 1. 优先查找 %LOCALAPPDATA%\CCP\EVE\ =====
             string localAppData = Environment.GetEnvironmentVariable("LOCALAPPDATA");
@@ -71,6 +145,44 @@ namespace EVESyncTool.Core.Utils
                 {
                     _logAction?.Invoke("快速查找", $"检查 LOCALAPPDATA: {evePath}", "");
                     string folder = ScanDirectory(evePath, keyword);
+                    if (folder != null)
+                    {
+                        _logAction?.Invoke("快速查找", "成功", folder);
+                        return folder;
+                    }
+                }
+            }
+
+            // ===== 1.5 检查 ProgramData =====
+            string programData = Environment.GetEnvironmentVariable("ProgramData");
+            if (!string.IsNullOrEmpty(programData))
+            {
+                string ccpData = Path.Combine(programData, "CCP", "EVE");
+                if (Directory.Exists(ccpData))
+                {
+                    _logAction?.Invoke("快速查找", $"检查 ProgramData: {ccpData}", "");
+                    string folder = ScanDirectory(ccpData, keyword);
+                    if (folder != null)
+                    {
+                        _logAction?.Invoke("快速查找", "成功", folder);
+                        return folder;
+                    }
+                }
+            }
+
+            // ===== 1.6 检查 Steam 库 =====
+            string[] steamPaths = {
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Steam", "steamapps", "common", "EVE Online"),
+                Path.Combine("C:", "Program Files (x86)", "Steam", "steamapps", "common", "EVE Online"),
+                Path.Combine("D:", "SteamLibrary", "steamapps", "common", "EVE Online"),
+                Path.Combine("E:", "SteamLibrary", "steamapps", "common", "EVE Online")
+            };
+            foreach (string steamPath in steamPaths)
+            {
+                if (Directory.Exists(steamPath))
+                {
+                    _logAction?.Invoke("快速查找", $"检查 Steam: {steamPath}", "");
+                    string folder = ScanDirectory(steamPath, keyword);
                     if (folder != null)
                     {
                         _logAction?.Invoke("快速查找", "成功", folder);

@@ -267,12 +267,12 @@ namespace EVESyncTool.Core.Services.Sync
             Log("Marshal编码", "输出", datPath);
         }
 
-        public MarshalData LoadMappingsFromDat(string datPath, bool isCharFile)
+        public UserFieldMapping LoadMappingsFromDat(string datPath)
         {
             Log("加载映射", "文件", datPath);
-            _marshalService.LoadMappingsFromDat(datPath, isCharFile);
-            Log("加载映射", "类型", isCharFile ? "角色文件" : "用户文件");
-            return _marshalService.ReadDatFile(datPath);
+            var mapping = _marshalService.LoadUserMappingsFromDat(datPath);
+            Log("加载映射", "完成", "用户文件");
+            return mapping;
         }
 
         #endregion

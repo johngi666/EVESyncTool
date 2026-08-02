@@ -12,21 +12,32 @@ namespace EVESyncTool.Core.Services
     public class FieldMappingService
     {
         private readonly SyncSettings _settings;
+        private UserFieldMapping _userMapping;
         private readonly HashSet<string> _publicChannelNames;
 
         public FieldMappingService(SyncSettings settings)
         {
             _settings = settings ?? new SyncSettings();
+            _userMapping = new UserFieldMapping();
             _publicChannelNames = new HashSet<string>();
         }
 
         /// <summary>
-        /// 刷新公共频道名称缓存（从当前加载的映射中更新）
+        /// 加载用户字段映射（替代旧的全局静态写入方式）
+        /// </summary>
+        public void LoadUserMapping(UserFieldMapping mapping)
+        {
+            _userMapping = mapping ?? new UserFieldMapping();
+            RefreshPublicChannelNames();
+        }
+
+        /// <summary>
+        /// 刷新公共频道名称缓存（从当前实例的映射中更新）
         /// </summary>
         public void RefreshPublicChannelNames()
         {
             _publicChannelNames.Clear();
-            foreach (var name in UserFieldMapping.ChatChannelMapping.Values)
+            foreach (var name in _userMapping.ChatChannelMapping.Values)
             {
                 if (!string.IsNullOrEmpty(name))
                 {

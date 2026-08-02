@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace EVESyncTool.Core.Services.File
@@ -151,59 +152,80 @@ namespace EVESyncTool.Core.Services.File
             string charId,
             Action<int, string> onNameReceived)
         {
-            try
+            const int maxRetries = 1;
+            for (int attempt = 0; attempt <= maxRetries; attempt++)
             {
-                string baseUrl;
-                string dataSource;
-
-                switch (_currentServer)
+                try
                 {
-                    case "曙光服 (Infinity)":
-                        baseUrl = "https://ali-esi.evepc.163.com";
-                        dataSource = "infinity";
-                        break;
-                    case "晨曦服 (Serenity)":
-                        baseUrl = "https://ali-esi.evepc.163.com";
-                        dataSource = "serenity";
-                        break;
-                    case "国际服 (Tranquility)":
-                    default:
-                        baseUrl = "https://esi.evetech.net";
-                        dataSource = "tq";
-                        break;
-                }
+                    string baseUrl;
+                    string dataSource;
 
-                string url = $"{baseUrl}/latest/characters/{charId}/?datasource={dataSource}";
-
-                using var request = new HttpRequestMessage(HttpMethod.Get, url);
-                request.Headers.Add("User-Agent", "EVEConfigManager/1.0");
-                request.Headers.Add("Accept", "application/json");
-
-                var response = await _httpClient.SendAsync(request);
-                if (response.IsSuccessStatusCode)
-                {
-                    string json = await response.Content.ReadAsStringAsync();
-                    using var doc = JsonDocument.Parse(json);
-                    string name = doc.RootElement.GetProperty("name").GetString();
-
-                    if (!string.IsNullOrEmpty(name) && int.TryParse(charId, out int id))
+                    switch (_currentServer)
                     {
-                        onNameReceived?.Invoke(id, name);
-                        return new KeyValuePair<string, string>(charId, name);
+                        case "曙光服 (Infinity)":
+                            baseUrl = "https://ali-esi.evepc.163.com";
+                            dataSource = "infinity";
+                            break;
+                        case "晨曦服 (Serenity)":
+                            baseUrl = "https://ali-esi.evepc.163.com";
+                            dataSource = "serenity";
+                            break;
+                        case "国际服 (Tranquility)":
+                        default:
+                            baseUrl = "https://esi.evetech.net";
+                            dataSource = "tq";
+                            break;
+                    }
+
+                    string url = $"{baseUrl}/latest/characters/{charId}/?datasource={dataSource}";
+
+                    using var request = new HttpRequestMessage(HttpMethod.Get, url);
+                    request.Headers.Add("User-Agent", "EVEConfigManager/1.0");
+                    request.Headers.Add("Accept", "application/json");
+
+                    using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+                    var response = await _httpClient.SendAsync(request, cts.Token);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        string json = await response.Content.ReadAsStringAsync();
+                        using var doc = JsonDocument.Parse(json);
+                        string name = doc.RootElement.GetProperty("name").GetString();
+
+                        if (!string.IsNullOrEmpty(name) && int.TryParse(charId, out int id))
+                        {
+                            onNameReceived?.Invoke(id, name);
+                            return new KeyValuePair<string, string>(charId, name);
+                        }
+                    }
+                    else
+                    {
+                        // HTTP 4xx 不重试（用户不存在等），5xx 需要重试
+                        bool shouldRetry = (int)response.StatusCode >= 500 && attempt < maxRetries;
+                        _logAction?.Invoke("查询角色名", "失败", $"HTTP {response.StatusCode} - {charId}{(shouldRetry ? " (将重试)" : "")}");
+                        if (!shouldRetry) break;
                     }
                 }
-                else
+                catch (TaskCanceledException)
                 {
-                    _logAction?.Invoke("查询角色名", "失败", $"HTTP {response.StatusCode} - {charId}");
+                    if (attempt < maxRetries)
+                    {
+                        _logAction?.Invoke("查询角色名", "超时", $"{charId} (第{attempt + 1}次，将重试)");
+                        await Task.Delay(500);
+                        continue;
+                    }
+                    _logAction?.Invoke("查询角色名", "超时", charId);
                 }
-            }
-            catch (TaskCanceledException)
-            {
-                _logAction?.Invoke("查询角色名", "超时", charId);
-            }
-            catch (Exception ex)
-            {
-                _logAction?.Invoke("查询角色名", "异常", $"{charId}: {ex.Message}");
+                catch (Exception ex)
+                {
+                    if (attempt < maxRetries)
+                    {
+                        _logAction?.Invoke("查询角色名", "异常", $"{charId}: {ex.Message} (将重试)");
+                        await Task.Delay(500);
+                        continue;
+                    }
+                    _logAction?.Invoke("查询角色名", "异常", $"{charId}: {ex.Message}");
+                }
+                break;
             }
 
             return new KeyValuePair<string, string>(charId, null);

@@ -1,4 +1,5 @@
-﻿using EVESyncTool.Core.Services.File;
+﻿using EVESyncTool.Core.Config;
+using EVESyncTool.Core.Services.File;
 using EVESyncTool.Core.Services.Log;
 using EVESyncTool.Dialogs.Common;
 using System;
@@ -13,6 +14,7 @@ namespace EVESyncTool.Core.Services.Backup
     {
         private readonly FileSyncManager _fileSyncManager;
         private readonly LogService _logService;
+        private readonly ConfigManager _configManager;
         private readonly Func<string> _getCurrentFolder;
         private readonly Action<Action> _invokeOnUI;
         private readonly Action _refreshBackupList;
@@ -20,12 +22,14 @@ namespace EVESyncTool.Core.Services.Backup
         public BackupService(
             FileSyncManager fileSyncManager,
             LogService logService,
+            ConfigManager configManager,
             Func<string> getCurrentFolder,
             Action<Action> invokeOnUI,
             Action refreshBackupList)
         {
             _fileSyncManager = fileSyncManager;
             _logService = logService;
+            _configManager = configManager;
             _getCurrentFolder = getCurrentFolder;
             _invokeOnUI = invokeOnUI;
             _refreshBackupList = refreshBackupList;
@@ -42,7 +46,8 @@ namespace EVESyncTool.Core.Services.Backup
 
             try
             {
-                string backupPath = _fileSyncManager.BackupFolder(currentFolder, msg => _logService.Log("备份", msg, ""));
+                string backupBasePath = _configManager.GetBackupPath();
+                string backupPath = _fileSyncManager.BackupFolder(currentFolder, msg => _logService.Log("备份", msg, ""), backupBasePath);
                 _refreshBackupList?.Invoke();
                 CustomMessageBox.Show($"备份完成！\n保存路径: {backupPath}", "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 _logService.Log("备份", "成功", backupPath);
@@ -64,7 +69,8 @@ namespace EVESyncTool.Core.Services.Backup
 
             if (result == DialogResult.Yes)
             {
-                int count = _fileSyncManager.DeleteAllBackups(msg => _logService.Log("删除备份", msg, ""));
+                string backupBasePath = _configManager.GetBackupPath();
+                int count = _fileSyncManager.DeleteAllBackups(msg => _logService.Log("删除备份", msg, ""), backupBasePath);
                 _refreshBackupList?.Invoke();
                 CustomMessageBox.Show($"已删除 {count} 个备份", "完成", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 _logService.Log("删除备份", "成功", $"删除了 {count} 个备份");
@@ -160,7 +166,8 @@ namespace EVESyncTool.Core.Services.Backup
 
         public List<BackupFolderInfo> GetBackupFolders()
         {
-            return _fileSyncManager.GetBackupFolders();
+            string backupBasePath = _configManager.GetBackupPath();
+            return _fileSyncManager.GetBackupFolders(backupBasePath);
         }
 
         public string BackupSingleFile(string filePath)
@@ -173,8 +180,7 @@ namespace EVESyncTool.Core.Services.Backup
 
             try
             {
-                string desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-                string baseBackupDir = Path.Combine(desktop, "EVE配置备份");
+                string baseBackupDir = _configManager.GetBackupPath();
                 if (!Directory.Exists(baseBackupDir))
                     Directory.CreateDirectory(baseBackupDir);
 

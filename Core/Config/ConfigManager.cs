@@ -7,18 +7,24 @@ using System.Text.Json;
 namespace EVESyncTool.Core.Config
 {
     /// <summary>
-    /// 统一配置管理（所有配置汇总到一个文件）
+    /// 统一配置管理（所有配置汇总到一个文件，带防抖写入）
     /// </summary>
     public class ConfigManager
     {
         private const string ConfigFile = "evesync_config.json";
         private AppConfig _config;
+        private System.Timers.Timer _debounceTimer;
+        private bool _pendingSave = false;
+        private readonly object _saveLock = new object();
 
         public AppConfig Config => _config;
 
         public ConfigManager()
         {
             Load();
+            _debounceTimer = new System.Timers.Timer(500);
+            _debounceTimer.AutoReset = false;
+            _debounceTimer.Elapsed += (s, e) => FlushSave();
         }
 
         /// <summary>
@@ -51,13 +57,31 @@ namespace EVESyncTool.Core.Config
         }
 
         /// <summary>
-        /// 保存配置（统一写入一个文件）
+        /// 保存配置（防抖：连续调用时只写一次磁盘）
         /// </summary>
         public void Save()
         {
+            lock (_saveLock)
+            {
+                _pendingSave = true;
+            }
+            _debounceTimer.Stop();
+            _debounceTimer.Start();
+        }
+
+        /// <summary>
+        /// 立即写入磁盘（跳过防抖）
+        /// </summary>
+        public void FlushSave()
+        {
+            lock (_saveLock)
+            {
+                if (!_pendingSave) return;
+                _pendingSave = false;
+            }
+
             try
             {
-                // 从 CharacterCacheManager 获取最新角色名
                 var charNames = CharacterCacheManager.GetAllCachedNames();
                 _config.CharacterNames = charNames ?? new Dictionary<string, string>();
 
@@ -165,6 +189,27 @@ namespace EVESyncTool.Core.Config
         }
 
         /// <summary>
+        /// 获取备份路径（默认桌面/EVE配置备份）
+        /// </summary>
+        public string GetBackupPath()
+        {
+            if (!string.IsNullOrEmpty(_config.BackupPath) && Directory.Exists(_config.BackupPath))
+                return _config.BackupPath;
+
+            string desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+            return Path.Combine(desktop, "EVE配置备份");
+        }
+
+        /// <summary>
+        /// 保存备份路径
+        /// </summary>
+        public void SaveBackupPath(string path)
+        {
+            _config.BackupPath = path;
+            Save();
+        }
+
+        /// <summary>
         /// 获取用户备注显示名（带原ID后缀，用于同步对话框）
         /// </summary>
         public string GetUserDisplayNameWithId(string userId)
@@ -183,6 +228,8 @@ namespace EVESyncTool.Core.Config
     {
         public string LastServer { get; set; } = "曙光服 (Infinity)";
         public string CachedPath { get; set; }
+        public string BackupPath { get; set; }
+        public bool UseDarkMode { get; set; } = false;
         public Dictionary<string, string> CharacterNames { get; set; } = new Dictionary<string, string>();
         public List<ConfigScheme> ConfigSchemes { get; set; } = new List<ConfigScheme>();
         public SyncSettings SyncSettings { get; set; } = new SyncSettings();

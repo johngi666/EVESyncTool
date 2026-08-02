@@ -1,18 +1,20 @@
-﻿namespace EVESyncTool.Dialogs.Info
+﻿using EVESyncTool.Core;
+
+namespace EVESyncTool.Dialogs.Info
 {
     /// <summary>
     /// 使用说明文本
     /// </summary>
     public static class HelpText
     {
-        public static string Content = @"
+        public static string Content = $@"
 =============================================
                                 EVE配置管理工具使用说明 
 =============================================
 命运之手-醉晚月出品
 
 【版本更新】
-当前版本：v5.3
+当前版本：{AppInfo.Version}
 更新内容：
    - 用户ID支持双击编辑备注
    - 同步对话框显示备注+数字ID

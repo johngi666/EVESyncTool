@@ -272,13 +272,13 @@ namespace EVESyncTool.Core.Services.File
 
         #region 备份管理
 
-        public string BackupFolder(string sourceFolder, Action<string> logAction = null)
+        public string BackupFolder(string sourceFolder, Action<string> logAction = null, string backupBasePath = null)
         {
             if (!Directory.Exists(sourceFolder))
                 throw new DirectoryNotFoundException($"文件夹不存在: {sourceFolder}");
 
-            string desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-            string baseBackupDir = Path.Combine(desktop, "EVE配置备份");
+            string baseBackupDir = backupBasePath ?? Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "EVE配置备份");
 
             if (!Directory.Exists(baseBackupDir))
                 Directory.CreateDirectory(baseBackupDir);
@@ -294,10 +294,10 @@ namespace EVESyncTool.Core.Services.File
             return backupPath;
         }
 
-        public List<BackupFolderInfo> GetBackupFolders()
+        public List<BackupFolderInfo> GetBackupFolders(string backupBasePath = null)
         {
-            string desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-            string baseBackupDir = Path.Combine(desktop, "EVE配置备份");
+            string baseBackupDir = backupBasePath ?? Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "EVE配置备份");
             var result = new List<BackupFolderInfo>();
 
             if (!Directory.Exists(baseBackupDir))
@@ -339,9 +339,9 @@ namespace EVESyncTool.Core.Services.File
             return result.OrderByDescending(b => b.CreatedAt).ToList();
         }
 
-        public int DeleteAllBackups(Action<string> logAction = null)
+        public int DeleteAllBackups(Action<string> logAction = null, string backupBasePath = null)
         {
-            var backups = GetBackupFolders();
+            var backups = GetBackupFolders(backupBasePath);
             int deleted = 0;
 
             foreach (var backup in backups)

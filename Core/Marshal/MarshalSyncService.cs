@@ -1,4 +1,4 @@
-﻿using EVESyncTool.Core.Mapping;
+using EVESyncTool.Core.Mapping;
 using System;
 using System.IO;
 using System.Text.Json;
@@ -70,54 +70,38 @@ namespace EVESyncTool.Core.Marshal
         }
 
         /// <summary>
-        /// 读取 .dat 文件，提取并构建所有映射表（自动更新到 Mapping 层）
+        /// 读取 .dat 文件，提取并构建用户字段映射（返回实例，不再写全局静态状态）
         /// </summary>
-        public void LoadMappingsFromDat(string datPath, bool isCharFile = true)
+        public UserFieldMapping LoadUserMappingsFromDat(string datPath)
         {
             var data = ReadDatFile(datPath);
-
-            if (isCharFile)
-            {
-                // 角色文件：聊天频道 + 装配方案
-                CharFieldMapping.BuildChatChannelMapping(data.ChatChannels);
-                CharFieldMapping.BuildFittingNameMapping(data.Fittings);
-            }
-            else
-            {
-                // 用户文件：所有6大类映射
-                UserFieldMapping.BuildAll(
-                    data.WindowTitles,
-                    data.ChatChannels,
-                    data.OverviewTabs,
-                    data.CustomCommands,
-                    data.BookmarkFolders
-                );
-            }
+            var mapping = new UserFieldMapping();
+            mapping.BuildAll(
+                data.WindowTitles,
+                data.ChatChannels,
+                data.OverviewTabs,
+                data.CustomCommands,
+                data.BookmarkFolders
+            );
+            return mapping;
         }
 
         /// <summary>
-        /// 从 JSON 字符串加载映射表（不生成文件）
+        /// 从 JSON 字符串加载用户字段映射
         /// </summary>
-        public void LoadMappingsFromJson(string jsonString, bool isCharFile = true)
+        public UserFieldMapping LoadUserMappingsFromJson(string jsonString)
         {
             using var document = JsonDocument.Parse(jsonString);
             var data = _parser.ExtractAll(document);
-
-            if (isCharFile)
-            {
-                CharFieldMapping.BuildChatChannelMapping(data.ChatChannels);
-                CharFieldMapping.BuildFittingNameMapping(data.Fittings);
-            }
-            else
-            {
-                UserFieldMapping.BuildAll(
-                    data.WindowTitles,
-                    data.ChatChannels,
-                    data.OverviewTabs,
-                    data.CustomCommands,
-                    data.BookmarkFolders
-                );
-            }
+            var mapping = new UserFieldMapping();
+            mapping.BuildAll(
+                data.WindowTitles,
+                data.ChatChannels,
+                data.OverviewTabs,
+                data.CustomCommands,
+                data.BookmarkFolders
+            );
+            return mapping;
         }
 
         /// <summary>

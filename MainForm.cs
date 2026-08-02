@@ -1,4 +1,5 @@
-﻿using EVESyncTool.Core.Config;
+﻿using EVESyncTool.Core;
+using EVESyncTool.Core.Config;
 using EVESyncTool.Core.Mapping;
 using EVESyncTool.Core.Services;
 using EVESyncTool.Core.Services.Backup;
@@ -21,6 +22,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Net.Http;
+using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -41,7 +43,10 @@ namespace EVESyncTool
         private readonly RightPanelBuilder _rightPanel;
         private readonly TitleBarBuilder _titleBarBuilder;
 
-        private static readonly HttpClient _httpClient = new HttpClient();
+        private static readonly HttpClient _httpClient = new HttpClient
+        {
+            Timeout = TimeSpan.FromSeconds(15)
+        };
         private string _currentServer = "曙光服 (Infinity)";
         private string _currentFolder;
 
@@ -106,6 +111,7 @@ namespace EVESyncTool
             _backupService = new BackupService(
                 fileSyncManager,
                 _logService,
+                _configManager,
                 () => _currentFolder,
                 action => action.Invoke(),
                 () => RefreshBackupList()
@@ -138,6 +144,14 @@ namespace EVESyncTool
 
             InitializeComponent();
 
+            // 加载并应用当前主题
+            if (_configManager.Config.UseDarkMode)
+            {
+                ThemeManager.SetDarkMode(true);
+                _titleBarBuilder.ApplyTheme(true);
+            }
+            ThemeManager.ThemeChanged += ApplyTheme;
+
             _serverStatusManager.SetStatusLabels(
                 _leftPanel.LblInfinityStatus,
                 _leftPanel.LblSerenityStatus,
@@ -151,6 +165,7 @@ namespace EVESyncTool
             _logService.Log("程序启动", "成功", "");
             _ = AutoFindFolderAsync();
             _serverStatusManager.Start();
+            _ = CheckForUpdatesAsync();
         }
 
         private void InitializeComponent()
@@ -165,6 +180,7 @@ namespace EVESyncTool
             this.Controls.Add(_titleBarBuilder.Build());
             _titleBarBuilder.BtnHelp.Click += BtnHelp_Click;
             _titleBarBuilder.BtnLog.Click += BtnLog_Click;
+            _titleBarBuilder.BtnTheme.Click += BtnTheme_Click;
             // 设置按钮已移除
             // _titleBarBuilder.BtnSettings.Click += BtnSettings_Click;
 
@@ -545,6 +561,131 @@ namespace EVESyncTool
                 _logForm.Close();
                 _logForm = null;
                 _logService.Log("关闭操作日志窗口", "成功", "");
+            }
+        }
+
+        private void BtnTheme_Click(object sender, EventArgs e)
+        {
+            ThemeManager.Toggle();
+            _configManager.Config.UseDarkMode = ThemeManager.IsDarkMode;
+            _configManager.Save();
+            _logService.Log("主题切换", "成功", ThemeManager.IsDarkMode ? "暗色模式" : "亮色模式");
+        }
+
+        private void ApplyTheme(bool isDark)
+        {
+            this.BackColor = ThemeManager.Bg;
+            _titleBarBuilder.ApplyTheme(isDark);
+            ApplyThemeToControl(this, isDark);
+        }
+
+        private static void ApplyThemeToControl(Control parent, bool isDark)
+        {
+            foreach (Control ctrl in parent.Controls)
+            {
+                // 跳过标题栏（由 TitleBarBuilder 自管理）
+                if (ctrl is Panel panel && panel.Dock == DockStyle.Top && panel.Height <= 40)
+                    continue;
+
+                if (ctrl is DataGridView dgv)
+                {
+                    dgv.BackgroundColor = ThemeManager.GridBg;
+                    dgv.DefaultCellStyle.BackColor = ThemeManager.GridBg;
+                    dgv.DefaultCellStyle.ForeColor = ThemeManager.Text;
+                    dgv.DefaultCellStyle.SelectionBackColor = ThemeManager.SelectionBg;
+                    dgv.DefaultCellStyle.SelectionForeColor = ThemeManager.SelectionFg;
+                    dgv.ColumnHeadersDefaultCellStyle.BackColor = ThemeManager.GridHeader;
+                    dgv.ColumnHeadersDefaultCellStyle.ForeColor = ThemeManager.Text;
+                    dgv.ColumnHeadersDefaultCellStyle.SelectionBackColor = ThemeManager.GridHeader;
+                    dgv.EnableHeadersVisualStyles = false;
+                    dgv.GridColor = ThemeManager.Separator;
+
+                    // 列级样式覆盖：消除硬编码的 BackColor（如用户ID列的白色底色）
+                    foreach (DataGridViewColumn col in dgv.Columns)
+                    {
+                        col.DefaultCellStyle.BackColor = ThemeManager.GridBg;
+                        col.DefaultCellStyle.ForeColor = ThemeManager.Text;
+                        col.DefaultCellStyle.SelectionBackColor = ThemeManager.SelectionBg;
+                        col.DefaultCellStyle.SelectionForeColor = ThemeManager.SelectionFg;
+                    }
+                }
+                else if (ctrl is Label label)
+                {
+                    if (!label.ForeColor.IsEmpty)
+                        label.ForeColor = ThemeManager.Text;
+                }
+                else if (ctrl is Panel p)
+                {
+                    // 高度≤2且宽度远大于高度 → 分割线，用 Separator 色
+                    if (p.Height <= 2 && p.Width > p.Height * 10)
+                        p.BackColor = ThemeManager.Separator;
+                    else
+                        p.BackColor = ThemeManager.Panel;
+                }
+
+                if (ctrl.HasChildren)
+                    ApplyThemeToControl(ctrl, isDark);
+            }
+        }
+
+        private async Task CheckForUpdatesAsync()
+        {
+            try
+            {
+                string json = await _httpClient.GetStringAsync(AppInfo.UpdateCheckUrl);
+                using var doc = JsonDocument.Parse(json);
+                var root = doc.RootElement;
+
+                string remoteVersion = root.GetProperty("version").GetString();
+                string downloadUrl = root.TryGetProperty("url", out var u) ? u.GetString() : AppInfo.ReleasesUrl;
+                string notes = root.TryGetProperty("notes", out var n) ? n.GetString() : "";
+
+                if (IsNewerVersion(remoteVersion, AppInfo.Version))
+                {
+                    this.Invoke(new Action(() =>
+                    {
+                        using var dialog = new UpdateDialog(remoteVersion, notes, downloadUrl);
+                        dialog.Owner = this;
+                        dialog.ShowDialog();
+                    }));
+                    _logService.Log("版本检查", "发现新版本", remoteVersion);
+                }
+                else
+                {
+                    _logService.Log("版本检查", "已是最新", AppInfo.Version);
+                }
+            }
+            catch (Exception)
+            {
+                // 静默处理——网络不通或文件不存在时不影响正常使用
+            }
+        }
+
+        private static bool IsNewerVersion(string remote, string local)
+        {
+            try
+            {
+                // 解析 "v5.3" 格式
+                int[] Parse(string v) => v.TrimStart('v', 'V')
+                    .Split('.')
+                    .Select(s => int.TryParse(s, out int n) ? n : 0)
+                    .ToArray();
+
+                int[] r = Parse(remote);
+                int[] l = Parse(local);
+
+                int len = Math.Max(r.Length, l.Length);
+                for (int i = 0; i < len; i++)
+                {
+                    int rv = i < r.Length ? r[i] : 0;
+                    int lv = i < l.Length ? l[i] : 0;
+                    if (rv != lv) return rv > lv;
+                }
+                return false; // 版本相同
+            }
+            catch
+            {
+                return false;
             }
         }
 

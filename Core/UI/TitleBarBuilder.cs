@@ -14,11 +14,11 @@ namespace EVESyncTool.Core.UI
         private readonly Panel _titleBar;
         private readonly Button _btnHelp;
         private readonly Button _btnLog;
-        private readonly Button _btnSettings;
+        private readonly Button _btnTheme;
 
         public Button BtnHelp => _btnHelp;
         public Button BtnLog => _btnLog;
-        public Button BtnSettings => _btnSettings;
+        public Button BtnTheme => _btnTheme;
 
         public TitleBarBuilder(Form owner)
         {
@@ -78,19 +78,19 @@ namespace EVESyncTool.Core.UI
             };
             _btnLog.FlatAppearance.BorderSize = 0;
 
-            //// 覆盖设置按钮
-            //_btnSettings = new Button
-            //{
-            //    Text = "⚙覆盖设置",
-            //    FlatStyle = FlatStyle.Flat,
-            //    ForeColor = Color.White,
-            //    BackColor = Color.Transparent,
-            //    Font = new Font("Microsoft YaHei", 9),
-            //    Size = new Size(80, 25),
-            //    Location = new Point(360, 4),
-            //    Cursor = Cursors.Hand
-            //};
-            //_btnSettings.FlatAppearance.BorderSize = 0;
+            // 暗色模式切换按钮
+            _btnTheme = new Button
+            {
+                Text = "🌙",
+                FlatStyle = FlatStyle.Flat,
+                ForeColor = Color.White,
+                BackColor = Color.Transparent,
+                Font = new Font("Segoe UI", 11),
+                Size = new Size(35, 25),
+                Location = new Point(360, 4),
+                Cursor = Cursors.Hand
+            };
+            _btnTheme.FlatAppearance.BorderSize = 0;
 
             // 关闭按钮
             Button btnClose = new Button
@@ -134,7 +134,7 @@ namespace EVESyncTool.Core.UI
             _titleBar.Controls.Add(titleLabel);
             _titleBar.Controls.Add(_btnHelp);
             _titleBar.Controls.Add(_btnLog);
-            _titleBar.Controls.Add(_btnSettings);
+            _titleBar.Controls.Add(_btnTheme);
             _titleBar.Controls.Add(btnClose);
             _titleBar.Controls.Add(btnMinimize);
 
@@ -148,6 +148,29 @@ namespace EVESyncTool.Core.UI
         public Panel Build()
         {
             return _titleBar;
+        }
+
+        /// <summary>
+        /// 应用明暗主题到标题栏
+        /// </summary>
+        public void ApplyTheme(bool isDark)
+        {
+            _titleBar.BackColor = ThemeManager.TitleBar;
+            _btnTheme.Text = isDark ? "☀️" : "🌙";
+
+            // 遍历标题栏内所有子控件
+            foreach (Control ctrl in _titleBar.Controls)
+            {
+                if (ctrl is Label label)
+                {
+                    label.ForeColor = ThemeManager.TitleBtn;
+                }
+                else if (ctrl is Button btn)
+                {
+                    btn.ForeColor = ThemeManager.TitleBtn;
+                    btn.BackColor = Color.Transparent;
+                }
+            }
         }
 
         [DllImport("user32.dll")]
