@@ -153,9 +153,9 @@ namespace EVESyncTool
             _ = AutoFindFolderAsync();
             _serverStatusManager.Start();
 
-            // 启动时立即检查一次，之后每 20 分钟再查（网络不稳定时提高成功率）
+            // 启动时立即检查一次，之后每分钟再查（网络不稳定时尽快捕获到新版本）
             _updateCheckTimer = new System.Windows.Forms.Timer();
-            _updateCheckTimer.Interval = 20 * 60 * 1000;
+            _updateCheckTimer.Interval = 60 * 1000;
             _updateCheckTimer.Tick += async (s, e) => await CheckForUpdatesAsync();
             _updateCheckTimer.Start();
             _ = CheckForUpdatesAsync();
