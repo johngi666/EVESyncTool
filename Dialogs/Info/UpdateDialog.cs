@@ -1,4 +1,4 @@
-using EVESyncTool.Core.UI;
+using EVESyncTool.Dialogs.Common;
 using System;
 using System.Diagnostics;
 using System.Drawing;
@@ -9,23 +9,19 @@ namespace EVESyncTool.Dialogs.Info
     /// <summary>
     /// 新版本通知弹窗
     /// </summary>
-    public class UpdateDialog : Form
+    public class UpdateDialog : BaseDialog
     {
         public UpdateDialog(string newVersion, string releaseNotes, string downloadUrl)
         {
             this.Text = "发现新版本";
-            this.Size = new Size(420, 260);
-            this.StartPosition = FormStartPosition.CenterParent;
+            this.Size = new Size(420, 320);
             this.BackColor = Color.White;
-            this.FormBorderStyle = FormBorderStyle.FixedDialog;
-            this.MaximizeBox = false;
-            this.MinimizeBox = false;
 
             Label lblIcon = new Label
             {
                 Text = "🎉",
                 Font = new Font("Segoe UI", 32),
-                Location = new Point(20, 15),
+                Location = new Point(20, 55),
                 AutoSize = true
             };
 
@@ -34,7 +30,7 @@ namespace EVESyncTool.Dialogs.Info
                 Text = $"发现新版本：{newVersion}",
                 Font = new Font("Microsoft YaHei", 12, FontStyle.Bold),
                 ForeColor = Color.FromArgb(70, 130, 180),
-                Location = new Point(70, 20),
+                Location = new Point(70, 60),
                 AutoSize = true
             };
 
@@ -43,7 +39,7 @@ namespace EVESyncTool.Dialogs.Info
                 Text = $"当前版本：{Core.AppInfo.Version}",
                 Font = new Font("Microsoft YaHei", 9),
                 ForeColor = Color.Gray,
-                Location = new Point(70, 48),
+                Location = new Point(70, 88),
                 AutoSize = true
             };
 
@@ -51,8 +47,8 @@ namespace EVESyncTool.Dialogs.Info
             {
                 Text = string.IsNullOrWhiteSpace(releaseNotes) ? "暂无更新说明" : releaseNotes,
                 Font = new Font("Microsoft YaHei", 9),
-                Location = new Point(20, 80),
-                Size = new Size(370, 80),
+                Location = new Point(20, 120),
+                Size = new Size(370, 100),
                 Multiline = true,
                 ReadOnly = true,
                 BackColor = Color.FromArgb(245, 245, 245),
@@ -64,7 +60,7 @@ namespace EVESyncTool.Dialogs.Info
             {
                 Text = "前往下载",
                 Size = new Size(110, 35),
-                Location = new Point(150, 175),
+                Location = new Point(150, 235),
                 FlatStyle = FlatStyle.Flat,
                 BackColor = Color.FromArgb(70, 130, 180),
                 ForeColor = Color.White,
@@ -83,7 +79,7 @@ namespace EVESyncTool.Dialogs.Info
             {
                 Text = "稍后提醒",
                 Size = new Size(110, 35),
-                Location = new Point(270, 175),
+                Location = new Point(270, 235),
                 FlatStyle = FlatStyle.Flat,
                 BackColor = Color.FromArgb(180, 180, 180),
                 ForeColor = Color.White,
@@ -99,8 +95,6 @@ namespace EVESyncTool.Dialogs.Info
             this.Controls.Add(txtNotes);
             this.Controls.Add(btnDownload);
             this.Controls.Add(btnLater);
-
-            ThemeManager.ApplyToForm(this);
         }
     }
 }

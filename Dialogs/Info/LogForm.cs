@@ -1,4 +1,4 @@
-﻿using EVESyncTool.Core.UI;
+﻿using EVESyncTool.Dialogs.Common;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -7,7 +7,7 @@ using System.Windows.Forms;
 
 namespace EVESyncTool.Dialogs.Info
 {
-    public partial class LogForm : Form
+    public partial class LogForm : BaseDialog
     {
         private List<string> _logEntries;
         private RichTextBox rtb;
@@ -18,62 +18,15 @@ namespace EVESyncTool.Dialogs.Info
             _logEntries = logEntries;
             InitializeComponent();
             RefreshLogContent();
-            ThemeManager.ApplyToForm(this);
         }
 
         private void InitializeComponent()
         {
             this.Text = "操作日志";
             this.Size = new Size(490, 588);
-            this.StartPosition = FormStartPosition.CenterParent;
             this.BackColor = Color.White;
-            this.FormBorderStyle = FormBorderStyle.None;
             this.TopMost = false;
             this.ShowInTaskbar = false;
-
-            // 标题栏
-            Panel titleBar = new Panel
-            {
-                Height = 35,
-                Dock = DockStyle.Top,
-                BackColor = Color.FromArgb(70, 130, 180)
-            };
-
-            // 添加拖动功能
-            titleBar.MouseDown += (s, e) =>
-            {
-                if (e.Button == MouseButtons.Left)
-                {
-                    ReleaseCapture();
-                    SendMessage(this.Handle, 0xA1, 0x2, 0);
-                }
-            };
-
-            Label titleLabel = new Label
-            {
-                Text = "操作日志",
-                ForeColor = Color.White,
-                Font = new Font("Microsoft YaHei", 11, FontStyle.Bold),
-                AutoSize = true,
-                Location = new Point(10, 8)
-            };
-
-            Button btnClose = new Button
-            {
-                Text = "×",
-                FlatStyle = FlatStyle.Flat,
-                ForeColor = Color.White,
-                BackColor = Color.Transparent,
-                Font = new Font("Segoe UI", 14, FontStyle.Bold),
-                Size = new Size(35, 35),
-                Location = new Point(this.Width - 40, 0),
-                Cursor = Cursors.Hand
-            };
-            btnClose.FlatAppearance.BorderSize = 0;
-            btnClose.Click += (s, e) => this.Close();
-
-            titleBar.Controls.Add(titleLabel);
-            titleBar.Controls.Add(btnClose);
 
             // 内容区域
             rtb = new RichTextBox
@@ -100,7 +53,6 @@ namespace EVESyncTool.Dialogs.Info
             btnCloseBottom.FlatAppearance.BorderSize = 0;
             btnCloseBottom.Click += (s, e) => this.Close();
 
-            this.Controls.Add(titleBar);
             this.Controls.Add(rtb);
             this.Controls.Add(btnCloseBottom);
 
@@ -114,7 +66,6 @@ namespace EVESyncTool.Dialogs.Info
 
             this.Resize += (s, e) =>
             {
-                btnClose.Location = new Point(this.Width - 40, 0);
                 rtb.Size = new Size(this.Width - 20, this.Height - 100);
                 btnCloseBottom.Location = new Point(this.Width - 90, this.Height - 45);
             };

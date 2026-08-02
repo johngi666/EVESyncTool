@@ -1,7 +1,7 @@
 ﻿using EVESyncTool.Core.Config;
 using EVESyncTool.Core.Mapping;
-using EVESyncTool.Core.Marshal;
 using EVESyncTool.Core.Services.File;
+using EVESyncTool.Core.Services.Mapping;
 using EVESyncTool.Data;
 using EVESyncTool.Dialogs.Common;
 using EVESyncTool.Dialogs.Progress;
@@ -20,20 +20,17 @@ namespace EVESyncTool.Core.Services.Sync
     {
         private readonly FileSyncManager _fileSyncManager;
         private FieldMappingService _fieldMappingService;
-        private readonly MarshalSyncService _marshalService;
         private readonly ConfigManager _configManager;
         private readonly Action<string, string, string> _logAction;
 
         public SyncService(
             FileSyncManager fileSyncManager = null,
             FieldMappingService fieldMappingService = null,
-            MarshalSyncService marshalService = null,
             ConfigManager configManager = null,
             Action<string, string, string> logAction = null)
         {
             _fileSyncManager = fileSyncManager ?? new FileSyncManager();
             _fieldMappingService = fieldMappingService ?? new FieldMappingService(new SyncSettings());
-            _marshalService = marshalService ?? new MarshalSyncService();
             _configManager = configManager ?? new ConfigManager();
             _logAction = logAction;
 
@@ -59,19 +56,32 @@ namespace EVESyncTool.Core.Services.Sync
 
         #region 文件同步
 
-        public void FullSyncFolder(string sourceFolder, string targetFolder)
+        /// <summary>
+        /// 将源文件复制到多个目标路径（逐个复制并记录日志），返回成功数量
+        /// </summary>
+        public int CopyFileToTargets(string sourcePath, List<string> targetPaths, string operationName)
         {
-            Log($"开始完整同步", "源", sourceFolder);
-            _fileSyncManager.FullSync(sourceFolder, targetFolder, msg => Log("同步", msg, ""));
-            Log($"完整同步完成", "目标", targetFolder);
-        }
+            if (string.IsNullOrEmpty(sourcePath) || targetPaths == null || targetPaths.Count == 0)
+                return 0;
 
-        public async Task<bool> SyncSingleFileAsync(string sourcePath, string targetPath)
-        {
-            Log($"同步文件", "源", sourcePath);
-            var result = await _fileSyncManager.SyncSingleFileAsync(sourcePath, targetPath, msg => Log("同步", msg, ""));
-            Log($"同步文件完成", "结果", result ? "成功" : "失败");
-            return result;
+            int successCount = 0;
+            string sourceName = Path.GetFileName(sourcePath);
+
+            foreach (string targetPath in targetPaths)
+            {
+                try
+                {
+                    System.IO.File.Copy(sourcePath, targetPath, true);
+                    Log(operationName, "成功", $"{sourceName} → {Path.GetFileName(targetPath)}");
+                    successCount++;
+                }
+                catch (Exception ex)
+                {
+                    Log(operationName, "失败", $"{Path.GetFileName(targetPath)}: {ex.Message}");
+                }
+            }
+
+            return successCount;
         }
 
         /// <summary>
@@ -251,68 +261,7 @@ namespace EVESyncTool.Core.Services.Sync
 
         #endregion
 
-        #region Marshal 相关
-
-        public void DecodeDatToJson(string datPath, string jsonPath)
-        {
-            Log("Marshal解码", "源", datPath);
-            _marshalService.DecodeToFile(datPath, jsonPath);
-            Log("Marshal解码", "输出", jsonPath);
-        }
-
-        public void EncodeJsonToDat(string jsonPath, string datPath)
-        {
-            Log("Marshal编码", "源", jsonPath);
-            _marshalService.EncodeFromFile(jsonPath, datPath);
-            Log("Marshal编码", "输出", datPath);
-        }
-
-        public UserFieldMapping LoadMappingsFromDat(string datPath)
-        {
-            Log("加载映射", "文件", datPath);
-            var mapping = _marshalService.LoadUserMappingsFromDat(datPath);
-            Log("加载映射", "完成", "用户文件");
-            return mapping;
-        }
-
-        #endregion
-
-        #region 备份管理
-
-        public string CreateBackup(string sourceFolder)
-        {
-            Log("创建备份", "源", sourceFolder);
-            var backupPath = _fileSyncManager.BackupFolder(sourceFolder, msg => Log("备份", msg, ""));
-            Log("创建备份", "路径", backupPath);
-            return backupPath;
-        }
-
-        public List<BackupFolderInfo> GetBackups()
-        {
-            return _fileSyncManager.GetBackupFolders();
-        }
-
-        public int DeleteAllBackups()
-        {
-            Log("删除备份", "开始", "");
-            var count = _fileSyncManager.DeleteAllBackups(msg => Log("删除备份", msg, ""));
-            Log("删除备份", "完成", $"删除了 {count} 个备份");
-            return count;
-        }
-
-        #endregion
-
-        #region 设置项获取
-
-        public Dictionary<string, List<SettingItem>> GetAllSettingItemsByCategory()
-        {
-            return SettingMapping.GetByCategory();
-        }
-
-        public List<SettingItem> GetAllSettingItems()
-        {
-            return SettingMapping.GetAll();
-        }
+        #region 设置项获取（部分覆盖预留）
 
         public List<SettingItem> GetSelectedSettingsFromCurrentSettings(SyncSettings settings)
         {
@@ -342,7 +291,7 @@ namespace EVESyncTool.Core.Services.Sync
 
         #endregion
 
-        #region 过滤和判断
+        #region 过滤和判断（部分覆盖预留）
 
         public void RefreshPublicChannelCache()
         {

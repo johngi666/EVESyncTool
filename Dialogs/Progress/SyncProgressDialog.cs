@@ -1,5 +1,4 @@
-﻿using EVESyncTool.Core.UI;
-using EVESyncTool.Dialogs.Common;
+﻿using EVESyncTool.Dialogs.Common;
 using System;
 using System.Drawing;
 using System.Runtime.InteropServices;
@@ -12,14 +11,13 @@ namespace EVESyncTool.Dialogs.Progress
     /// <summary>
     /// 同步进度对话框
     /// </summary>
-    public partial class SyncProgressDialog : Form
+    public partial class SyncProgressDialog : BaseDialog
     {
         private ProgressBar progressBar;
         private Label lblStatus;
         private Label lblDetail;
         private Button btnCancel;
         private Button btnClose;
-        private Panel titleBar;
 
         private CancellationTokenSource _cts;
         private bool _isCompleted = false;
@@ -35,81 +33,15 @@ namespace EVESyncTool.Dialogs.Progress
             _totalSteps = totalSteps;
             _cts = new CancellationTokenSource();
             InitializeComponent(title);
-            ThemeManager.ApplyToForm(this);
         }
 
         private void InitializeComponent(string title)
         {
             this.Text = title;
             this.Size = new Size(450, 180);
-            this.StartPosition = FormStartPosition.CenterParent;
             this.BackColor = Color.White;
-            this.FormBorderStyle = FormBorderStyle.None;
             this.TopMost = false;
             this.ShowInTaskbar = false;
-
-            // 标题栏
-            titleBar = new Panel
-            {
-                Height = 35,
-                Dock = DockStyle.Top,
-                BackColor = Color.FromArgb(70, 130, 180)
-            };
-
-            titleBar.MouseDown += (s, e) =>
-            {
-                if (e.Button == MouseButtons.Left)
-                {
-                    ReleaseCapture();
-                    SendMessage(this.Handle, 0xA1, 0x2, 0);
-                }
-            };
-
-            Label titleLabel = new Label
-            {
-                Text = this.Text,
-                ForeColor = Color.White,
-                Font = new Font("Microsoft YaHei", 11, FontStyle.Bold),
-                AutoSize = true,
-                Location = new Point(10, 8)
-            };
-
-            Button btnCloseTitle = new Button
-            {
-                Text = "×",
-                FlatStyle = FlatStyle.Flat,
-                ForeColor = Color.White,
-                BackColor = Color.Transparent,
-                Font = new Font("Segoe UI", 14, FontStyle.Bold),
-                Size = new Size(35, 35),
-                Location = new Point(this.Width - 40, 0),
-                Cursor = Cursors.Hand
-            };
-            btnCloseTitle.FlatAppearance.BorderSize = 0;
-            btnCloseTitle.Click += (s, e) =>
-            {
-                if (!_isCompleted)
-                {
-                    var result = CustomMessageBox.Show(
-                        "同步正在进行中，确定要取消吗？",
-                        "确认取消",
-                        MessageBoxButtons.YesNo,
-                        MessageBoxIcon.Question);
-                    if (result == DialogResult.Yes)
-                    {
-                        _cts?.Cancel();
-                        _isCancelled = true;
-                        this.Close();
-                    }
-                }
-                else
-                {
-                    this.Close();
-                }
-            };
-
-            titleBar.Controls.Add(titleLabel);
-            titleBar.Controls.Add(btnCloseTitle);
 
             // 状态标签
             lblStatus = new Label
@@ -190,7 +122,6 @@ namespace EVESyncTool.Dialogs.Progress
             btnClose.FlatAppearance.BorderSize = 0;
             btnClose.Click += (s, e) => this.Close();
 
-            this.Controls.Add(titleBar);
             this.Controls.Add(lblStatus);
             this.Controls.Add(lblDetail);
             this.Controls.Add(progressBar);
@@ -199,7 +130,6 @@ namespace EVESyncTool.Dialogs.Progress
 
             this.Resize += (s, e) =>
             {
-                btnCloseTitle.Location = new Point(this.Width - 40, 0);
                 progressBar.Size = new Size(this.Width - 40, 22);
                 lblStatus.Size = new Size(this.Width - 40, 25);
                 lblDetail.Size = new Size(this.Width - 40, 20);
@@ -214,6 +144,28 @@ namespace EVESyncTool.Dialogs.Progress
         public CancellationToken GetCancellationToken()
         {
             return _cts.Token;
+        }
+
+        protected override void OnCloseClicked()
+        {
+            if (!_isCompleted)
+            {
+                var result = CustomMessageBox.Show(
+                    "同步正在进行中，确定要取消吗？",
+                    "确认取消",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question);
+                if (result == DialogResult.Yes)
+                {
+                    _cts?.Cancel();
+                    _isCancelled = true;
+                    this.Close();
+                }
+            }
+            else
+            {
+                this.Close();
+            }
         }
 
         /// <summary>

@@ -1,11 +1,12 @@
-﻿using EVESyncTool.Core.UI;
+﻿using EVESyncTool.Dialogs.Common;
 using System;
 using System.Drawing;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
 namespace EVESyncTool.Dialogs.Info
 {
-    public partial class SearchFailDialog : Form
+    public partial class SearchFailDialog : BaseDialog
     {
         public enum UserChoice
         {
@@ -22,62 +23,15 @@ namespace EVESyncTool.Dialogs.Info
         {
             _serverName = serverName;
             InitializeComponent();
-            ThemeManager.ApplyToForm(this);
         }
 
         private void InitializeComponent()
         {
             this.Text = "提示";
             this.Size = new Size(380, 220);
-            this.StartPosition = FormStartPosition.CenterParent;
             this.BackColor = Color.White;
-            this.FormBorderStyle = FormBorderStyle.None;
             this.TopMost = false;
             this.ShowInTaskbar = false;
-
-            // 标题栏
-            Panel titleBar = new Panel
-            {
-                Height = 35,
-                Dock = DockStyle.Top,
-                BackColor = Color.FromArgb(70, 130, 180)
-            };
-
-            // 拖动功能
-            titleBar.MouseDown += (s, e) =>
-            {
-                if (e.Button == MouseButtons.Left)
-                {
-                    ReleaseCapture();
-                    SendMessage(this.Handle, 0xA1, 0x2, 0);
-                }
-            };
-
-            Label titleLabel = new Label
-            {
-                Text = "提示",
-                ForeColor = Color.White,
-                Font = new Font("Microsoft YaHei", 11, FontStyle.Bold),
-                AutoSize = true,
-                Location = new Point(10, 8)
-            };
-
-            Button btnClose = new Button
-            {
-                Text = "×",
-                FlatStyle = FlatStyle.Flat,
-                ForeColor = Color.White,
-                BackColor = Color.Transparent,
-                Font = new Font("Segoe UI", 14, FontStyle.Bold),
-                Size = new Size(35, 35),
-                Location = new Point(this.Width - 40, 0),
-                Cursor = Cursors.Hand
-            };
-            btnClose.FlatAppearance.BorderSize = 0;
-            btnClose.Click += (s, e) => { _result = UserChoice.Cancel; this.Close(); };
-
-            titleBar.Controls.Add(titleLabel);
-            titleBar.Controls.Add(btnClose);
 
             // 提示消息
             Label lblMessage = new Label
@@ -117,13 +71,11 @@ namespace EVESyncTool.Dialogs.Info
             buttonPanel.Controls.Add(btnManualSelect);
             buttonPanel.Controls.Add(btnCancel);
 
-            this.Controls.Add(titleBar);
             this.Controls.Add(lblMessage);
             this.Controls.Add(buttonPanel);
 
             this.Resize += (s, e) =>
             {
-                btnClose.Location = new Point(this.Width - 40, 0);
                 buttonPanel.Location = new Point(30, this.Height - 85);
             };
         }
@@ -149,6 +101,12 @@ namespace EVESyncTool.Dialogs.Info
         {
             base.ShowDialog();
             return _result;
+        }
+
+        protected override void OnCloseClicked()
+        {
+            _result = UserChoice.Cancel;
+            this.Close();
         }
 
         [System.Runtime.InteropServices.DllImport("user32.dll")]

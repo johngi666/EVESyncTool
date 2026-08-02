@@ -1,4 +1,5 @@
-﻿using EVESyncTool.Dialogs.Common;
+﻿using EVESyncTool.Core;
+using EVESyncTool.Dialogs.Common;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -8,7 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace EVESyncTool.Core.Services
+namespace EVESyncTool.Core.Services.ServerStatus
 {
     public class ServerStatusManager
     {
@@ -68,9 +69,11 @@ namespace EVESyncTool.Core.Services
             if (_lblInfinityStatus == null || _lblSerenityStatus == null || _lblTranquilityStatus == null)
                 return;
 
-            await UpdateServerStatusAsync("infinity", _lblInfinityStatus);
-            await UpdateServerStatusAsync("serenity", _lblSerenityStatus);
-            await UpdateServerStatusAsync("tq", _lblTranquilityStatus);
+            Label[] labels = { _lblInfinityStatus, _lblSerenityStatus, _lblTranquilityStatus };
+            for (int i = 0; i < ServerInfo.All.Length; i++)
+            {
+                await UpdateServerStatusAsync(ServerInfo.All[i], labels[i]);
+            }
 
             if (_isFirstStatusCheck)
             {
@@ -78,14 +81,14 @@ namespace EVESyncTool.Core.Services
             }
         }
 
-        private async Task UpdateServerStatusAsync(string serverKey, Label statusLabel)
+        private async Task UpdateServerStatusAsync(ServerInfo server, Label statusLabel)
         {
-            string displayName = serverKey == "infinity" ? "曙光服" :
-                                 serverKey == "serenity" ? "晨曦服" : "国际服";
+            string serverKey = server.DataSource;
+            string displayName = server.StatusName;
 
             try
             {
-                string url = GetStatusUrl(serverKey);
+                string url = server.StatusUrl;
                 int timeoutSeconds = (serverKey == "tq") ? 5 : 10;
 
                 using (var request = new HttpRequestMessage(HttpMethod.Get, url))
@@ -149,21 +152,6 @@ namespace EVESyncTool.Core.Services
                 statusLabel.Text = $"{displayName}: 查询失败";
                 statusLabel.ForeColor = Color.Red;
                 _logAction?.Invoke($"查询{displayName}状态", "失败", ex.Message);
-            }
-        }
-
-        private string GetStatusUrl(string serverKey)
-        {
-            switch (serverKey)
-            {
-                case "tq":
-                    return "https://esi.evetech.net/latest/status/";
-                case "serenity":
-                    return "https://ali-esi.evepc.163.com/latest/status/?datasource=serenity";
-                case "infinity":
-                    return "https://ali-esi.evepc.163.com/latest/status/?datasource=infinity";
-                default:
-                    return "https://esi.evetech.net/latest/status/";
             }
         }
 

@@ -6,6 +6,7 @@ using EVESyncTool.Core.Services.Backup;
 using EVESyncTool.Core.Services.File;
 using EVESyncTool.Core.Services.Folder;
 using EVESyncTool.Core.Services.Log;
+using EVESyncTool.Core.Services.ServerStatus;
 using EVESyncTool.Core.Services.Sync;
 using EVESyncTool.Core.Services.UI;
 using EVESyncTool.Core.UI;
@@ -57,20 +58,6 @@ namespace EVESyncTool
         private HelpForm _helpForm;
         private LogForm _logForm;
 
-        private readonly Dictionary<string, string> _serverKeywords = new Dictionary<string, string>
-        {
-            { "曙光服 (Infinity)", "infinity" },
-            { "晨曦服 (Serenity)", "serenity" },
-            { "国际服 (Tranquility)", "tranquility" }
-        };
-
-        private readonly Dictionary<string, string> _serverDataSourceMap = new Dictionary<string, string>
-        {
-            { "曙光服 (Infinity)", "infinity" },
-            { "晨曦服 (Serenity)", "serenity" },
-            { "国际服 (Tranquility)", "tq" }
-        };
-
         public string CurrentFolder => _currentFolder;
 
         public MainForm()
@@ -80,11 +67,11 @@ namespace EVESyncTool
 
             _logService = new LogService();
 
-            var folderFinder = new FolderFinder(_serverKeywords, _logService.Log, null);
+            var folderFinder = new FolderFinder(ServerInfo.ToKeywordMap(), _logService.Log, null);
 
             var fileListService = new FileListService(
                 _httpClient,
-                _serverDataSourceMap,
+                ServerInfo.ToDataSourceMap(),
                 _currentServer,
                 _logService.Log,
                 null
@@ -119,7 +106,6 @@ namespace EVESyncTool
 
             _syncService = new SyncService(
                 fileSyncManager,
-                null,
                 null,
                 _configManager,
                 _logService.Log
@@ -443,42 +429,19 @@ namespace EVESyncTool
                 return;
             }
 
-            // ★★★ 获取用户备注 ★★★
-            var remarks = _configManager.GetUserRemarks();
-
-            // ★★★ 创建FileTargetItem时传入UserId ★★★
+            // 创建目标列表：显示名（备注优先）+ 用户ID（用于匹配备注）
             var targets = otherFiles.Select(item => new FileTargetItem(
                 item.FilePath,
-                _configManager.GetUserDisplayName(item.UserId),  // 显示名
-                item.UserId  // 用户ID，用于匹配备注
+                _configManager.GetUserDisplayName(item.UserId),
+                item.UserId
             )).ToList();
 
-            using (var fileDialog = new SyncDialog(
+            ShowSyncDialog(
+                sourceItem.FilePath,
                 sourceItem.DisplayName ?? sourceItem.UserId,
-                System.IO.Path.GetFileName(_currentFolder),
                 targets,
-                remarks))  // ← 传入备注字典
-            {
-                if (fileDialog.ShowDialog(this) != DialogResult.OK)
-                {
-                    return;
-                }
-
-                foreach (var targetPath in fileDialog.SelectedTargets)
-                {
-                    try
-                    {
-                        System.IO.File.Copy(sourceItem.FilePath, targetPath, true);
-                        _logService.Log("同步用户文件", "成功", $"{System.IO.Path.GetFileName(sourceItem.FilePath)} → {System.IO.Path.GetFileName(targetPath)}");
-                    }
-                    catch (Exception ex)
-                    {
-                        _logService.Log("同步用户文件", "失败", $"{System.IO.Path.GetFileName(targetPath)}: {ex.Message}");
-                    }
-                }
-                _ = RefreshFileListAsync();
-                CustomMessageBox.Show($"同步完成，共同步 {fileDialog.SelectedTargets.Count} 个文件", "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
+                _configManager.GetUserRemarks(),
+                "同步用户文件");
         }
 
         private void ShowCharSyncDialog(CharacterFileItem sourceItem)
@@ -490,38 +453,44 @@ namespace EVESyncTool
                 return;
             }
 
-            // ★★★ 角色文件不需要备注，传入null ★★★
+            // 角色文件没有备注，DisplayName 为角色名或ID
             var targets = otherFiles.Select(item => new FileTargetItem(
                 item.FilePath,
                 item.CharacterName ?? item.CharacterId
-            // 角色文件没有UserId，不需要备注
             )).ToList();
 
-            using (var fileDialog = new SyncDialog(
+            ShowSyncDialog(
+                sourceItem.FilePath,
                 sourceItem.CharacterName ?? sourceItem.CharacterId,
+                targets,
+                null,
+                "同步角色文件");
+        }
+
+        /// <summary>
+        /// 通用同步对话框：选择目标 → 复制 → 刷新列表
+        /// </summary>
+        private void ShowSyncDialog(
+            string sourceFilePath,
+            string sourceDisplayName,
+            List<FileTargetItem> targets,
+            Dictionary<string, string> remarks,
+            string operationName)
+        {
+            using (var fileDialog = new SyncDialog(
+                sourceDisplayName,
                 System.IO.Path.GetFileName(_currentFolder),
                 targets,
-                null))  // ← 角色文件不需要备注
+                remarks))
             {
                 if (fileDialog.ShowDialog(this) != DialogResult.OK)
                 {
                     return;
                 }
 
-                foreach (var targetPath in fileDialog.SelectedTargets)
-                {
-                    try
-                    {
-                        System.IO.File.Copy(sourceItem.FilePath, targetPath, true);
-                        _logService.Log("同步角色文件", "成功", $"{System.IO.Path.GetFileName(sourceItem.FilePath)} → {System.IO.Path.GetFileName(targetPath)}");
-                    }
-                    catch (Exception ex)
-                    {
-                        _logService.Log("同步角色文件", "失败", $"{System.IO.Path.GetFileName(targetPath)}: {ex.Message}");
-                    }
-                }
+                int count = _syncService.CopyFileToTargets(sourceFilePath, fileDialog.SelectedTargets, operationName);
                 _ = RefreshFileListAsync();
-                CustomMessageBox.Show($"同步完成，共同步 {fileDialog.SelectedTargets.Count} 个文件", "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                CustomMessageBox.Show($"同步完成，共同步 {count} 个文件", "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
 

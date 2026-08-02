@@ -1,5 +1,4 @@
-﻿using EVESyncTool.Core.UI;
-using EVESyncTool.Dialogs.Common;
+﻿using EVESyncTool.Dialogs.Common;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -8,7 +7,7 @@ using System.Windows.Forms;
 
 namespace EVESyncTool.Dialogs.Sync
 {
-    public class SyncDialog : Form
+    public class SyncDialog : BaseDialog
     {
         private readonly string _sourceName;
         private readonly string _targetFolder;
@@ -49,7 +48,6 @@ namespace EVESyncTool.Dialogs.Sync
             {
                 LoadTargets();
             }
-            ThemeManager.ApplyToForm(this);
         }
 
         private void InitializeComponent()
@@ -57,43 +55,7 @@ namespace EVESyncTool.Dialogs.Sync
             this.Text = "选择同步目标";
             this.Size = new Size(400, 480);
             this.MinimumSize = new Size(400, 400);
-            this.StartPosition = FormStartPosition.CenterParent;
-            this.FormBorderStyle = FormBorderStyle.None;
             this.BackColor = Color.White;
-
-            // ===== 标题栏 =====
-            Panel titleBar = new Panel
-            {
-                Height = 35,
-                Dock = DockStyle.Top,
-                BackColor = Color.FromArgb(70, 130, 180)
-            };
-
-            Label titleLabel = new Label
-            {
-                Text = "同步到>>>",
-                ForeColor = Color.White,
-                Font = new Font("Microsoft YaHei", 12, FontStyle.Bold),
-                AutoSize = true,
-                Location = new Point(10, 8)
-            };
-
-            Button btnClose = new Button
-            {
-                Text = "×",
-                FlatStyle = FlatStyle.Flat,
-                ForeColor = Color.White,
-                BackColor = Color.Transparent,
-                Font = new Font("Segoe UI", 14, FontStyle.Bold),
-                Size = new Size(35, 35),
-                Location = new Point(this.Width - 40, 0),
-                Cursor = Cursors.Hand
-            };
-            btnClose.FlatAppearance.BorderSize = 0;
-            btnClose.Click += (s, e) => { DialogResult = DialogResult.Cancel; this.Close(); };
-
-            titleBar.Controls.Add(titleLabel);
-            titleBar.Controls.Add(btnClose);
 
             // ===== 信息标签 =====
             lblInfo = new Label
@@ -192,7 +154,6 @@ namespace EVESyncTool.Dialogs.Sync
                 Dock = DockStyle.Fill,
                 BackColor = Color.White
             };
-            contentPanel.Controls.Add(titleBar);
             contentPanel.Controls.Add(lblInfo);
             contentPanel.Controls.Add(lblTargetInfo);
             contentPanel.Controls.Add(btnSelectAll);
@@ -205,7 +166,6 @@ namespace EVESyncTool.Dialogs.Sync
             // ===== 窗口自适应 =====
             this.Resize += (s, e) =>
             {
-                btnClose.Location = new Point(this.Width - 40, 0);
                 scrollContainer.Size = new Size(this.Width - 30, this.Height - 205);
                 btnConfirm.Location = new Point(this.Width - 195, this.Height - 55);
                 btnCancel.Location = new Point(this.Width - 100, this.Height - 55);
@@ -299,6 +259,12 @@ namespace EVESyncTool.Dialogs.Sync
             }
 
             DialogResult = DialogResult.OK;
+            this.Close();
+        }
+
+        protected override void OnCloseClicked()
+        {
+            DialogResult = DialogResult.Cancel;
             this.Close();
         }
     }

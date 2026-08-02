@@ -1,5 +1,4 @@
 ﻿using EVESyncTool.Core.Mapping;
-using EVESyncTool.Core.UI;
 using EVESyncTool.Dialogs.Common;
 using System;
 using System.Collections.Generic;
@@ -9,7 +8,7 @@ using System.Windows.Forms;
 
 namespace EVESyncTool.Dialogs.Sync
 {
-    public class SettingsSelectionDialog : Form
+    public class SettingsSelectionDialog : BaseDialog
     {
         // ===== 私有字段（所有名称与 SyncDialog 不同） =====
         private readonly string _srcName;
@@ -50,7 +49,6 @@ namespace EVESyncTool.Dialogs.Sync
 
             BuildForm();
             LoadSettingCategories();
-            ThemeManager.ApplyToForm(this);
         }
 
         // ===== 界面构建 =====
@@ -59,43 +57,7 @@ namespace EVESyncTool.Dialogs.Sync
             this.Text = "选择要覆盖的设置";
             this.Size = new Size(500, 580);
             this.MinimumSize = new Size(450, 480);
-            this.StartPosition = FormStartPosition.CenterParent;
-            this.FormBorderStyle = FormBorderStyle.None;
             this.BackColor = Color.White;
-
-            // ---- 标题栏 ----
-            Panel headerBar = new Panel
-            {
-                Height = 35,
-                Dock = DockStyle.Top,
-                BackColor = Color.FromArgb(70, 130, 180)
-            };
-
-            Label headerTitle = new Label
-            {
-                Text = "选择要覆盖的设置项",
-                ForeColor = Color.White,
-                Font = new Font("Microsoft YaHei", 12, FontStyle.Bold),
-                AutoSize = true,
-                Location = new Point(10, 8)
-            };
-
-            Button closeBtn = new Button
-            {
-                Text = "×",
-                FlatStyle = FlatStyle.Flat,
-                ForeColor = Color.White,
-                BackColor = Color.Transparent,
-                Font = new Font("Segoe UI", 14, FontStyle.Bold),
-                Size = new Size(35, 35),
-                Location = new Point(this.Width - 40, 0),
-                Cursor = Cursors.Hand
-            };
-            closeBtn.FlatAppearance.BorderSize = 0;
-            closeBtn.Click += (s, e) => { DialogResult = DialogResult.Cancel; this.Close(); };
-
-            headerBar.Controls.Add(headerTitle);
-            headerBar.Controls.Add(closeBtn);
 
             // ---- 信息标签 ----
             _infoLabel = new Label
@@ -218,7 +180,6 @@ namespace EVESyncTool.Dialogs.Sync
                 Dock = DockStyle.Fill,
                 BackColor = Color.White
             };
-            contentArea.Controls.Add(headerBar);
             contentArea.Controls.Add(_infoLabel);
             contentArea.Controls.Add(_targetInfoLabel);
             contentArea.Controls.Add(_checkAllButton);
@@ -233,7 +194,6 @@ namespace EVESyncTool.Dialogs.Sync
             // ---- 窗口自适应 ----
             this.Resize += (s, e) =>
             {
-                closeBtn.Location = new Point(this.Width - 40, 0);
                 _scrollView.Size = new Size(this.Width - 30, this.Height - 205);
                 _okButton.Location = new Point(this.Width - 195, this.Height - 62);
                 _cancelButton.Location = new Point(this.Width - 100, this.Height - 62);
@@ -319,6 +279,12 @@ namespace EVESyncTool.Dialogs.Sync
             }
 
             DialogResult = DialogResult.OK;
+            this.Close();
+        }
+
+        protected override void OnCloseClicked()
+        {
+            DialogResult = DialogResult.Cancel;
             this.Close();
         }
     }

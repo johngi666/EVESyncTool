@@ -1,4 +1,5 @@
-﻿using EVESyncTool.Data;
+﻿using EVESyncTool.Core;
+using EVESyncTool.Data;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -157,27 +158,8 @@ namespace EVESyncTool.Core.Services.File
             {
                 try
                 {
-                    string baseUrl;
-                    string dataSource;
-
-                    switch (_currentServer)
-                    {
-                        case "曙光服 (Infinity)":
-                            baseUrl = "https://ali-esi.evepc.163.com";
-                            dataSource = "infinity";
-                            break;
-                        case "晨曦服 (Serenity)":
-                            baseUrl = "https://ali-esi.evepc.163.com";
-                            dataSource = "serenity";
-                            break;
-                        case "国际服 (Tranquility)":
-                        default:
-                            baseUrl = "https://esi.evetech.net";
-                            dataSource = "tq";
-                            break;
-                    }
-
-                    string url = $"{baseUrl}/latest/characters/{charId}/?datasource={dataSource}";
+                    var server = ServerInfo.GetByDisplayName(_currentServer);
+                    string url = $"{server.EsiBaseUrl}/latest/characters/{charId}/?datasource={server.DataSource}";
 
                     using var request = new HttpRequestMessage(HttpMethod.Get, url);
                     request.Headers.Add("User-Agent", "EVEConfigManager/1.0");

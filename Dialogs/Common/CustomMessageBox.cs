@@ -5,13 +5,12 @@ using System.Windows.Forms;
 
 namespace EVESyncTool.Dialogs.Common
 {
-    public class CustomMessageBox : Form
+    public class CustomMessageBox : BaseDialog
     {
         private Label lblMessage;
         private Button btnOK;
         private Button btnYes;
         private Button btnNo;
-        private Panel titleBar;
         private DialogResult result = DialogResult.None;
 
         public CustomMessageBox(string message, string title, MessageBoxButtons buttons = MessageBoxButtons.OK, MessageBoxIcon icon = MessageBoxIcon.Information)
@@ -22,50 +21,13 @@ namespace EVESyncTool.Dialogs.Common
             SetupButtons(buttons);
             SetupIcon(icon);
             AdjustHeight();
-            ThemeManager.ApplyToForm(this);
         }
 
         private void InitializeComponent()
         {
-            this.FormBorderStyle = FormBorderStyle.None;
-            this.StartPosition = FormStartPosition.CenterParent;
             this.MinimumSize = new Size(300, 150);
             this.MaximumSize = new Size(500, 500);
             this.BackColor = Color.White;
-
-            // 标题栏
-            titleBar = new Panel
-            {
-                Height = 35,
-                Dock = DockStyle.Top,
-                BackColor = Color.FromArgb(70, 130, 180)
-            };
-
-            Label titleLabel = new Label
-            {
-                Text = this.Text,
-                ForeColor = Color.White,
-                Font = new Font("Microsoft YaHei", 9, FontStyle.Bold),
-                AutoSize = true,
-                Location = new Point(10, 8)
-            };
-
-            Button btnClose = new Button
-            {
-                Text = "×",
-                FlatStyle = FlatStyle.Flat,
-                ForeColor = Color.White,
-                BackColor = Color.Transparent,
-                Font = new Font("Segoe UI", 14, FontStyle.Bold),
-                Size = new Size(35, 35),
-                Location = new Point(this.Width - 40, 0),
-                Cursor = Cursors.Hand
-            };
-            btnClose.FlatAppearance.BorderSize = 0;
-            btnClose.Click += (s, e) => { result = DialogResult.Cancel; this.Close(); };
-
-            titleBar.Controls.Add(titleLabel);
-            titleBar.Controls.Add(btnClose);
 
             // 消息内容
             lblMessage = new Label
@@ -88,13 +50,11 @@ namespace EVESyncTool.Dialogs.Common
                 Margin = new Padding(0)
             };
 
-            this.Controls.Add(titleBar);
             this.Controls.Add(lblMessage);
             this.Controls.Add(buttonPanel);
 
             this.Resize += (s, e) =>
             {
-                btnClose.Location = new Point(this.Width - 40, 0);
                 buttonPanel.Location = new Point(10, this.Height - 45);
             };
         }
@@ -192,6 +152,12 @@ namespace EVESyncTool.Dialogs.Common
         {
             base.ShowDialog();
             return result;
+        }
+
+        protected override void OnCloseClicked()
+        {
+            result = DialogResult.Cancel;
+            this.Close();
         }
 
         public static DialogResult Show(string message, string title = "提示", MessageBoxButtons buttons = MessageBoxButtons.OK, MessageBoxIcon icon = MessageBoxIcon.Information)

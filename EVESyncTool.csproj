@@ -16,6 +16,9 @@
 		<PublishReadyToRun>true</PublishReadyToRun>
 		<PublishTrimmed>false</PublishTrimmed>
 		<IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+
+		<!-- 排除测试目录，避免被主项目编译 -->
+		<DefaultItemExcludes>$(DefaultItemExcludes);tests\**</DefaultItemExcludes>
 	</PropertyGroup>
 
 	<!-- 确保 marshal_ffi.dll 在发布时被复制 -->

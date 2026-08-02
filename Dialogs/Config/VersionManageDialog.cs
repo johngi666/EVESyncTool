@@ -1,5 +1,4 @@
 ﻿using EVESyncTool.Core.Config;
-using EVESyncTool.Core.UI;
 using EVESyncTool.Data;
 using EVESyncTool.Dialogs.Common;
 using System;
@@ -32,7 +31,6 @@ namespace EVESyncTool.Dialogs.Config
             _schemes = new ObservableCollection<ConfigScheme>();
             InitializeForm();
             LoadSchemes();
-            ThemeManager.ApplyToForm(this);
         }
 
         private void AddLog(string message) => _addLogCallback?.Invoke(message);
@@ -40,42 +38,8 @@ namespace EVESyncTool.Dialogs.Config
         private void InitializeForm()
         {
             this.Size = new Size(600, 520);
-            this.StartPosition = FormStartPosition.CenterParent;
-            this.FormBorderStyle = FormBorderStyle.None;
             this.BackColor = Color.FromArgb(245, 245, 250);
             this.TopMost = false;
-
-            Panel titleBar = new Panel
-            {
-                Height = 35,
-                Dock = DockStyle.Top,
-                BackColor = Color.FromArgb(40, 100, 150)
-            };
-            Label titleLabel = new Label
-            {
-                Text = "配置方案管理",
-                ForeColor = Color.White,
-                Font = new Font("Microsoft YaHei", 12, FontStyle.Bold),
-                AutoSize = true
-            };
-            int titleWidth = TextRenderer.MeasureText(titleLabel.Text, titleLabel.Font).Width;
-            titleLabel.Location = new Point((this.Width - titleWidth) / 2, 8);
-
-            Button btnClose = new Button
-            {
-                Text = "×",
-                FlatStyle = FlatStyle.Flat,
-                ForeColor = Color.White,
-                BackColor = Color.Transparent,
-                Font = new Font("Segoe UI", 14, FontStyle.Bold),
-                Size = new Size(35, 35),
-                Location = new Point(this.Width - 40, 0),
-                Cursor = Cursors.Hand
-            };
-            btnClose.FlatAppearance.BorderSize = 0;
-            btnClose.Click += (s, e) => this.Close();
-            titleBar.Controls.Add(titleLabel);
-            titleBar.Controls.Add(btnClose);
 
             Panel listContainer = new Panel
             {
@@ -125,7 +89,6 @@ namespace EVESyncTool.Dialogs.Config
             btnCancel.Click += (s, e) => this.Close();
 
             Panel contentPanel = new Panel { Dock = DockStyle.Fill, BackColor = Color.Transparent };
-            contentPanel.Controls.Add(titleBar);
             contentPanel.Controls.Add(listContainer);
             contentPanel.Controls.Add(btnAdd);
             contentPanel.Controls.Add(btnCancel);
@@ -133,9 +96,6 @@ namespace EVESyncTool.Dialogs.Config
 
             this.Resize += (s, e) =>
             {
-                btnClose.Location = new Point(this.Width - 40, 0);
-                int newTitleWidth = TextRenderer.MeasureText(titleLabel.Text, titleLabel.Font).Width;
-                titleLabel.Location = new Point((this.Width - newTitleWidth) / 2, 8);
                 listContainer.Size = new Size(this.Width - 30, this.Height - 135);
                 btnAdd.Location = new Point(15, this.Height - 75);
                 btnCancel.Location = new Point(this.Width - 115, this.Height - 75);
