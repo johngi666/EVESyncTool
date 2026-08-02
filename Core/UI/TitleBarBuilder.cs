@@ -89,20 +89,20 @@ namespace EVESyncTool.Core.UI
                 BackColor = Color.Transparent,
                 Font = new Font("Microsoft YaHei", 9),
                 Size = new Size(85, 25),
-                Location = new Point(440, 4),
+                Location = new Point(455, 4),
                 Cursor = Cursors.Hand
             };
             _btnCheckUpdate.FlatAppearance.BorderSize = 0;
 
-            // 暗色模式切换按钮
+            // 夜间模式切换按钮
             _btnTheme = new Button
             {
-                Text = "🌙",
+                Text = "🌙夜间模式",
                 FlatStyle = FlatStyle.Flat,
                 ForeColor = Color.White,
                 BackColor = Color.Transparent,
-                Font = new Font("Segoe UI", 11),
-                Size = new Size(35, 25),
+                Font = new Font("Microsoft YaHei", 9),
+                Size = new Size(90, 25),
                 Location = new Point(360, 4),
                 Cursor = Cursors.Hand
             };
@@ -173,7 +173,7 @@ namespace EVESyncTool.Core.UI
         public void ApplyTheme(bool isDark)
         {
             _titleBar.BackColor = ThemeManager.TitleBar;
-            _btnTheme.Text = isDark ? "☀️" : "🌙";
+            _btnTheme.Text = isDark ? "☀️日间模式" : "🌙夜间模式";
 
             // 遍历标题栏内所有子控件
             foreach (Control ctrl in _titleBar.Controls)

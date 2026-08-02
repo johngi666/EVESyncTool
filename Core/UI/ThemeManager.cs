@@ -104,7 +104,7 @@ namespace EVESyncTool.Core.UI
                     GetClassName(hWnd, sb, sb.Capacity);
                     if (sb.ToString() == "SCROLLBAR")
                     {
-                        // 暗色模式用暗色滚动条主题，亮色模式恢复默认
+                        // 夜间模式用暗色滚动条主题，日间模式恢复默认
                         SetWindowTheme(hWnd, IsDarkMode ? "DarkMode_Explorer" : null, null);
                     }
                     return true;

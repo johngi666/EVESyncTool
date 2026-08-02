@@ -551,7 +551,7 @@ namespace EVESyncTool
             ThemeManager.Toggle();
             _configManager.Config.UseDarkMode = ThemeManager.IsDarkMode;
             _configManager.Save();
-            _logService.Log("主题切换", "成功", ThemeManager.IsDarkMode ? "暗色模式" : "亮色模式");
+            _logService.Log("主题切换", "成功", ThemeManager.IsDarkMode ? "夜间模式" : "日间模式");
         }
 
         private async void BtnCheckUpdate_Click(object sender, EventArgs e)
