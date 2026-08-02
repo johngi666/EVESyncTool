@@ -1,4 +1,5 @@
-﻿using System;
+﻿using EVESyncTool.Core.UI;
+using System;
 using System.Drawing;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -47,6 +48,7 @@ namespace EVESyncTool.Dialogs.Config
 
             InitializeComponent();
             LoadSettings();
+            ThemeManager.ApplyToForm(this);
         }
 
         private void InitializeComponent()

@@ -144,13 +144,10 @@ namespace EVESyncTool
 
             InitializeComponent();
 
-            // 加载并应用当前主题
-            if (_configManager.Config.UseDarkMode)
-            {
-                ThemeManager.SetDarkMode(true);
-                _titleBarBuilder.ApplyTheme(true);
-            }
+            // 加载并应用上次的主题模式（保存于 evesync_config.json 的 UseDarkMode）
+            ThemeManager.SetDarkMode(_configManager.Config.UseDarkMode);
             ThemeManager.ThemeChanged += ApplyTheme;
+            ApplyTheme(ThemeManager.IsDarkMode);
 
             _serverStatusManager.SetStatusLabels(
                 _leftPanel.LblInfinityStatus,
@@ -574,58 +571,8 @@ namespace EVESyncTool
 
         private void ApplyTheme(bool isDark)
         {
-            this.BackColor = ThemeManager.Bg;
             _titleBarBuilder.ApplyTheme(isDark);
-            ApplyThemeToControl(this, isDark);
-        }
-
-        private static void ApplyThemeToControl(Control parent, bool isDark)
-        {
-            foreach (Control ctrl in parent.Controls)
-            {
-                // 跳过标题栏（由 TitleBarBuilder 自管理）
-                if (ctrl is Panel panel && panel.Dock == DockStyle.Top && panel.Height <= 40)
-                    continue;
-
-                if (ctrl is DataGridView dgv)
-                {
-                    dgv.BackgroundColor = ThemeManager.GridBg;
-                    dgv.DefaultCellStyle.BackColor = ThemeManager.GridBg;
-                    dgv.DefaultCellStyle.ForeColor = ThemeManager.Text;
-                    dgv.DefaultCellStyle.SelectionBackColor = ThemeManager.SelectionBg;
-                    dgv.DefaultCellStyle.SelectionForeColor = ThemeManager.SelectionFg;
-                    dgv.ColumnHeadersDefaultCellStyle.BackColor = ThemeManager.GridHeader;
-                    dgv.ColumnHeadersDefaultCellStyle.ForeColor = ThemeManager.Text;
-                    dgv.ColumnHeadersDefaultCellStyle.SelectionBackColor = ThemeManager.GridHeader;
-                    dgv.EnableHeadersVisualStyles = false;
-                    dgv.GridColor = ThemeManager.Separator;
-
-                    // 列级样式覆盖：消除硬编码的 BackColor（如用户ID列的白色底色）
-                    foreach (DataGridViewColumn col in dgv.Columns)
-                    {
-                        col.DefaultCellStyle.BackColor = ThemeManager.GridBg;
-                        col.DefaultCellStyle.ForeColor = ThemeManager.Text;
-                        col.DefaultCellStyle.SelectionBackColor = ThemeManager.SelectionBg;
-                        col.DefaultCellStyle.SelectionForeColor = ThemeManager.SelectionFg;
-                    }
-                }
-                else if (ctrl is Label label)
-                {
-                    if (!label.ForeColor.IsEmpty)
-                        label.ForeColor = ThemeManager.Text;
-                }
-                else if (ctrl is Panel p)
-                {
-                    // 高度≤2且宽度远大于高度 → 分割线，用 Separator 色
-                    if (p.Height <= 2 && p.Width > p.Height * 10)
-                        p.BackColor = ThemeManager.Separator;
-                    else
-                        p.BackColor = ThemeManager.Panel;
-                }
-
-                if (ctrl.HasChildren)
-                    ApplyThemeToControl(ctrl, isDark);
-            }
+            ThemeManager.ApplyToForm(this);
         }
 
         private async Task CheckForUpdatesAsync()

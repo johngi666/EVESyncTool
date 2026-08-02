@@ -1,4 +1,5 @@
 ﻿using EVESyncTool.Core.Mapping;
+using EVESyncTool.Core.UI;
 using EVESyncTool.Dialogs.Common;
 using System;
 using System.Collections.Generic;
@@ -49,6 +50,7 @@ namespace EVESyncTool.Dialogs.Sync
 
             BuildForm();
             LoadSettingCategories();
+            ThemeManager.ApplyToForm(this);
         }
 
         // ===== 界面构建 =====

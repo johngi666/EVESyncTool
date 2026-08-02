@@ -1,5 +1,5 @@
 {
-  "version": "v5.4",
+  "version": "v5.42",
   "url": "https://github.com/johngi666/EVESyncTool/releases/latest",
-  "notes": "新增暗色模式、备份路径可配置、优化磁盘扫描（注册表+Steam）、FFI加载保护、ESI超时重试、自动更新检查"
+  "notes": "所有弹窗适配暗色模式、滚动条/进度条暗色配置、服务器下拉框暗色适配、修复暗亮双向切换恢复、启动自动启用上次主题"
 }

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using EVESyncTool.Core.UI;
+using System;
 using System.Drawing;
 using System.Windows.Forms;
 
@@ -21,6 +22,7 @@ namespace EVESyncTool.Dialogs.Common
             SetupButtons(buttons);
             SetupIcon(icon);
             AdjustHeight();
+            ThemeManager.ApplyToForm(this);
         }
 
         private void InitializeComponent()

@@ -1,4 +1,5 @@
 ﻿using EVESyncTool.Core.Config;
+using EVESyncTool.Core.UI;
 using EVESyncTool.Data;
 using EVESyncTool.Dialogs.Common;
 using System;
@@ -31,6 +32,7 @@ namespace EVESyncTool.Dialogs.Config
             _schemes = new ObservableCollection<ConfigScheme>();
             InitializeForm();
             LoadSchemes();
+            ThemeManager.ApplyToForm(this);
         }
 
         private void AddLog(string message) => _addLogCallback?.Invoke(message);

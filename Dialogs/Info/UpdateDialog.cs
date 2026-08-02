@@ -1,3 +1,4 @@
+using EVESyncTool.Core.UI;
 using System;
 using System.Diagnostics;
 using System.Drawing;
@@ -98,6 +99,8 @@ namespace EVESyncTool.Dialogs.Info
             this.Controls.Add(txtNotes);
             this.Controls.Add(btnDownload);
             this.Controls.Add(btnLater);
+
+            ThemeManager.ApplyToForm(this);
         }
     }
 }

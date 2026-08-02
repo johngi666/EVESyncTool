@@ -1,4 +1,5 @@
-﻿using EVESyncTool.Dialogs.Common;
+﻿using EVESyncTool.Core.UI;
+using EVESyncTool.Dialogs.Common;
 using System;
 using System.Drawing;
 using System.Runtime.InteropServices;
@@ -34,6 +35,7 @@ namespace EVESyncTool.Dialogs.Progress
             _totalSteps = totalSteps;
             _cts = new CancellationTokenSource();
             InitializeComponent(title);
+            ThemeManager.ApplyToForm(this);
         }
 
         private void InitializeComponent(string title)

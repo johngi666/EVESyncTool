@@ -1,4 +1,5 @@
-﻿using EVESyncTool.Dialogs.Common;
+﻿using EVESyncTool.Core.UI;
+using EVESyncTool.Dialogs.Common;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -48,6 +49,7 @@ namespace EVESyncTool.Dialogs.Sync
             {
                 LoadTargets();
             }
+            ThemeManager.ApplyToForm(this);
         }
 
         private void InitializeComponent()

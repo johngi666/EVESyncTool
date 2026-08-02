@@ -1,4 +1,5 @@
-﻿using System;
+﻿using EVESyncTool.Core.UI;
+using System;
 using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
@@ -10,6 +11,7 @@ namespace EVESyncTool.Dialogs.Info
         public HelpForm()
         {
             InitializeComponent();
+            ThemeManager.ApplyToForm(this);
         }
 
         private void InitializeComponent()

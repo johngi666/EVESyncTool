@@ -8,19 +8,17 @@ namespace EVESyncTool.Core
         /// <summary>
         /// 当前版本号（发布时修改此处即可）
         /// </summary>
-        public const string Version = "v5.4";
+        public const string Version = "v5.42";
 
         /// <summary>
         /// 更新内容（每行用 \n 换行）
         /// </summary>
         public const string ReleaseNotes =
-            "   - 新增暗色模式支持（标题栏 🌙 切换）\n" +
-            "   - 备份路径支持自定义配置\n" +
-            "   - 优化磁盘扫描速度（注册表+Steam路径）\n" +
-            "   - FFI 加载保护（DLL缺失不再崩溃）\n" +
-            "   - ESI 角色名查询加超时重试\n" +
-            "   - 自动更新检查（启动时后台检测）\n" +
-            "   - 配置保存防抖（减少磁盘写入）";
+            "   - 所有弹窗适配暗色模式\n" +
+            "   - 滚动条、进度条暗色配置\n" +
+            "   - 服务器下拉框暗色适配\n" +
+            "   - 修复暗色↔亮色双向切换恢复\n" +
+            "   - 启动时自动启用上次的主题模式";
 
         /// <summary>
         /// 更新日期

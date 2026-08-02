@@ -1,5 +1,7 @@
 using System;
 using System.Drawing;
+using System.Runtime.InteropServices;
+using System.Text;
 using System.Windows.Forms;
 
 namespace EVESyncTool.Core.UI
@@ -9,6 +11,18 @@ namespace EVESyncTool.Core.UI
     /// </summary>
     public static class ThemeManager
     {
+        // ===== Win32 滚动条暗色支持（Windows 11+） =====
+        [DllImport("uxtheme.dll", CharSet = CharSet.Unicode)]
+        private static extern int SetWindowTheme(IntPtr hWnd, string pszSubAppName, string pszSubIdList);
+
+        [DllImport("user32.dll")]
+        private static extern bool EnumChildWindows(IntPtr hWndParent, EnumWindowsProc lpEnumFunc, IntPtr lParam);
+
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        private static extern int GetClassName(IntPtr hWnd, StringBuilder lpClassName, int nMaxCount);
+
+        private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
         public static bool IsDarkMode { get; private set; } = false;
 
         // 亮色主题
@@ -61,6 +75,140 @@ namespace EVESyncTool.Core.UI
         public static void Toggle()
         {
             SetDarkMode(!IsDarkMode);
+        }
+
+        /// <summary>
+        /// 将当前主题应用到整个窗体（主窗体与所有弹窗通用）
+        /// </summary>
+        public static void ApplyToForm(Form form)
+        {
+            if (form == null) return;
+            form.BackColor = Bg;
+            ApplyToControlTree(form);
+            ApplyScrollBarTheme(form);
+        }
+
+        /// <summary>
+        /// 将滚动条切换为暗色（Windows 11+ 生效，Win10 自动忽略）
+        /// </summary>
+        private static void ApplyScrollBarTheme(Control root)
+        {
+            try
+            {
+                if (root.Handle == IntPtr.Zero)
+                    root.CreateControl();
+
+                EnumChildWindows(root.Handle, (hWnd, lParam) =>
+                {
+                    var sb = new StringBuilder(256);
+                    GetClassName(hWnd, sb, sb.Capacity);
+                    if (sb.ToString() == "SCROLLBAR")
+                    {
+                        // 暗色模式用暗色滚动条主题，亮色模式恢复默认
+                        SetWindowTheme(hWnd, IsDarkMode ? "DarkMode_Explorer" : null, null);
+                    }
+                    return true;
+                }, IntPtr.Zero);
+            }
+            catch
+            {
+                // 非 Windows 或权限问题忽略
+            }
+        }
+
+        private static void ApplyToControlTree(Control parent)
+        {
+            foreach (Control ctrl in parent.Controls)
+            {
+                // 标题栏（Dock=Top 且高度<=40 的面板）
+                if (ctrl is Panel panel && panel.Dock == DockStyle.Top && panel.Height <= 40)
+                {
+                    panel.BackColor = TitleBar;
+                    foreach (Control child in panel.Controls)
+                    {
+                        if (child is Label label) label.ForeColor = TitleBtn;
+                        else if (child is Button btn)
+                        {
+                            btn.ForeColor = TitleBtn;
+                            btn.BackColor = Color.Transparent;
+                        }
+                    }
+                    continue;
+                }
+
+                if (ctrl is DataGridView dgv)
+                {
+                    dgv.BackgroundColor = GridBg;
+                    dgv.DefaultCellStyle.BackColor = GridBg;
+                    dgv.DefaultCellStyle.ForeColor = Text;
+                    dgv.DefaultCellStyle.SelectionBackColor = SelectionBg;
+                    dgv.DefaultCellStyle.SelectionForeColor = SelectionFg;
+                    dgv.ColumnHeadersDefaultCellStyle.BackColor = GridHeader;
+                    dgv.ColumnHeadersDefaultCellStyle.ForeColor = Text;
+                    dgv.ColumnHeadersDefaultCellStyle.SelectionBackColor = GridHeader;
+                    dgv.EnableHeadersVisualStyles = false;
+                    dgv.GridColor = Separator;
+                    foreach (DataGridViewColumn col in dgv.Columns)
+                    {
+                        col.DefaultCellStyle.BackColor = GridBg;
+                        col.DefaultCellStyle.ForeColor = Text;
+                        col.DefaultCellStyle.SelectionBackColor = SelectionBg;
+                        col.DefaultCellStyle.SelectionForeColor = SelectionFg;
+                    }
+                }
+                else if (ctrl is RichTextBox rtb)
+                {
+                    rtb.BackColor = GridBg;
+                    rtb.ForeColor = Text;
+                }
+                else if (ctrl is TextBox tb)
+                {
+                    tb.BackColor = GridBg;
+                    tb.ForeColor = Text;
+                }
+                else if (ctrl is Label label)
+                {
+                    // 蓝色强调文字 → Accent（识别亮/暗两种主题色，双向切换都能恢复）
+                    if (label.ForeColor == Color.FromArgb(70, 130, 180) || label.ForeColor == Dark_Accent)
+                        label.ForeColor = Accent;
+                    else
+                        label.ForeColor = Text;
+                }
+                else if (ctrl is CheckBox cb)
+                {
+                    cb.ForeColor = Text;
+                }
+                else if (ctrl is ComboBox cmb)
+                {
+                    // 下拉框背景 + 文字
+                    cmb.BackColor = GridBg;
+                    cmb.ForeColor = Text;
+                }
+                else if (ctrl is ProgressBar pb)
+                {
+                    // 轨道色 + 填充色
+                    pb.BackColor = GridBg;
+                    pb.ForeColor = Accent;
+                }
+                else if (ctrl is Button btn)
+                {
+                    // 蓝色主按钮 → Accent（识别亮/暗两种主题色）；透明/彩色按钮（绿/橙/红/灰）保持
+                    if (btn.BackColor == Color.FromArgb(70, 130, 180) || btn.BackColor == Dark_Accent)
+                        btn.BackColor = Accent;
+                }
+                else if (ctrl is Panel p)
+                {
+                    // 分割线（高≤2且宽远大于高）
+                    if (p.Height <= 2 && p.Width > p.Height * 10)
+                        p.BackColor = Separator;
+                    // 非透明面板统一用 Panel 色（无论之前是亮色白底还是暗色深底，双向切换都能恢复）
+                    else if (p.BackColor != Color.Transparent)
+                        p.BackColor = Panel;
+                }
+
+                if (ctrl.HasChildren)
+                    ApplyToControlTree(ctrl);
+            }
         }
     }
 }

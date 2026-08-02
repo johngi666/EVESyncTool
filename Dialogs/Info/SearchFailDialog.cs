@@ -1,4 +1,5 @@
-﻿using System;
+﻿using EVESyncTool.Core.UI;
+using System;
 using System.Drawing;
 using System.Windows.Forms;
 
@@ -21,6 +22,7 @@ namespace EVESyncTool.Dialogs.Info
         {
             _serverName = serverName;
             InitializeComponent();
+            ThemeManager.ApplyToForm(this);
         }
 
         private void InitializeComponent()

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using EVESyncTool.Core.UI;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Runtime.InteropServices;
@@ -17,6 +18,7 @@ namespace EVESyncTool.Dialogs.Info
             _logEntries = logEntries;
             InitializeComponent();
             RefreshLogContent();
+            ThemeManager.ApplyToForm(this);
         }
 
         private void InitializeComponent()
