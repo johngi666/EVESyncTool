@@ -16,15 +16,9 @@ namespace EVESyncTool.Dialogs.Info
 【版本更新】
 当前版本：{AppInfo.Version}
 更新内容：
-   - 新增暗色模式支持（标题栏 🌙 切换）
-   - 备份路径支持自定义配置
-   - 优化磁盘扫描速度（注册表+Steam路径）
-   - FFI 加载保护（DLL缺失不再崩溃）
-   - ESI 角色名查询加超时重试
-   - 自动更新检查（启动时后台检测）
-   - 配置保存防抖（减少磁盘写入）
+{AppInfo.ReleaseNotes}
 
-更新日期：2026年8月2日
+更新日期：{AppInfo.ReleaseDate}
 
 【使用步骤】
 
