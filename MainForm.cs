@@ -171,7 +171,7 @@ namespace EVESyncTool
         {
             this.Text = "EVE配置管理工具";
             this.Size = new Size(1100, 588);
-            this.MinimumSize = new Size(950, 588);
+            this.MinimumSize = new Size(1050, 588);
             this.FormBorderStyle = FormBorderStyle.None;
             this.StartPosition = FormStartPosition.CenterScreen;
             this.BackColor = Color.FromArgb(240, 248, 255);
