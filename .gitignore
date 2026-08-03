@@ -13,3 +13,7 @@ publish/
 Thumbs.db
 .DS_Store
 publish_v546/
+
+# 发布产物
+*.zip
+*.exe
