@@ -1,6 +1,6 @@
 {
-  "version": "v5.46",
-  "downloadUrl": "https://gitee.com/minisangel/EVESyncTool/releases/download/v5.46/EVE配置管理工具.exe",
+  "version": "v5.47",
+  "downloadUrl": "https://gitee.com/minisangel/EVESyncTool/releases/download/v5.47/EVE配置管理工具.exe",
   "url": "https://github.com/johngi666/EVESyncTool/releases/latest",
-  "notes": "自动更新加入Gitee主源（国内稳定）、标题栏新增GitHub/Gitee按钮、修复切换服务器后角色名查询失败、修复国际服角色名查询（datasource修正）、配置文件新增BackupPath（备份位置可切换）"
+  "notes": "自动更新升级：程序内下载+进度条+自动替换重启、下载源优先Gitee（国内稳定）、更新弹窗新增「立即更新」按钮"
 }
