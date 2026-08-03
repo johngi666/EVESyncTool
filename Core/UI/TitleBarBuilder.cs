@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
@@ -16,11 +17,15 @@ namespace EVESyncTool.Core.UI
         private readonly Button _btnLog;
         private readonly Button _btnCheckUpdate;
         private readonly Button _btnTheme;
+        private readonly Button _btnGithub;
+        private readonly Button _btnGitee;
 
         public Button BtnHelp => _btnHelp;
         public Button BtnLog => _btnLog;
         public Button BtnCheckUpdate => _btnCheckUpdate;
         public Button BtnTheme => _btnTheme;
+        public Button BtnGithub => _btnGithub;
+        public Button BtnGitee => _btnGitee;
 
         public TitleBarBuilder(Form owner)
         {
@@ -94,6 +99,36 @@ namespace EVESyncTool.Core.UI
             };
             _btnCheckUpdate.FlatAppearance.BorderSize = 0;
 
+            // GitHub 按钮
+            _btnGithub = new Button
+            {
+                Text = "🐙GitHub",
+                FlatStyle = FlatStyle.Flat,
+                ForeColor = Color.White,
+                BackColor = Color.Transparent,
+                Font = new Font("Microsoft YaHei", 9),
+                Size = new Size(85, 25),
+                Location = new Point(550, 4),
+                Cursor = Cursors.Hand
+            };
+            _btnGithub.FlatAppearance.BorderSize = 0;
+            _btnGithub.Click += (s, e) => OpenUrl("https://github.com/johngi666/EVESyncTool");
+
+            // Gitee 按钮
+            _btnGitee = new Button
+            {
+                Text = "🚩Gitee",
+                FlatStyle = FlatStyle.Flat,
+                ForeColor = Color.White,
+                BackColor = Color.Transparent,
+                Font = new Font("Microsoft YaHei", 9),
+                Size = new Size(80, 25),
+                Location = new Point(640, 4),
+                Cursor = Cursors.Hand
+            };
+            _btnGitee.FlatAppearance.BorderSize = 0;
+            _btnGitee.Click += (s, e) => OpenUrl("https://gitee.com/minisangel/EVESyncTool");
+
             // 夜间模式切换按钮
             _btnTheme = new Button
             {
@@ -152,6 +187,8 @@ namespace EVESyncTool.Core.UI
             _titleBar.Controls.Add(_btnLog);
             _titleBar.Controls.Add(_btnCheckUpdate);
             _titleBar.Controls.Add(_btnTheme);
+            _titleBar.Controls.Add(_btnGithub);
+            _titleBar.Controls.Add(_btnGitee);
             _titleBar.Controls.Add(btnClose);
             _titleBar.Controls.Add(btnMinimize);
 
@@ -165,6 +202,18 @@ namespace EVESyncTool.Core.UI
         public Panel Build()
         {
             return _titleBar;
+        }
+
+        private static void OpenUrl(string url)
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+            }
+            catch
+            {
+                // 打开浏览器失败时忽略
+            }
         }
 
         /// <summary>
