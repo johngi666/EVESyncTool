@@ -8,16 +8,17 @@ namespace EVESyncTool.Core
         /// <summary>
         /// 当前版本号（发布时修改此处即可）
         /// </summary>
-        public const string Version = "v5.45";
+        public const string Version = "v5.46";
 
         /// <summary>
         /// 更新内容（每行用 \n 换行）
         /// </summary>
         public const string ReleaseNotes =
-            "   - 暗色模式更名夜间模式\n" +
-            "   - 标题栏夜间模式按钮加文字提示\n" +
-            "   - 自动更新多地址轮询（jsDelivr CDN 加速）\n" +
-            "   - 标题栏新增手动检查更新按钮";
+            "   - 自动更新加入 Gitee 主源（国内稳定）\n" +
+            "   - 标题栏新增 GitHub / Gitee 按钮\n" +
+            "   - 修复切换服务器后角色名查询失败\n" +
+            "   - 修复国际服角色名查询（datasource 修正）\n" +
+            "   - 配置文件新增 BackupPath（备份位置可切换）";
 
         /// <summary>
         /// 更新日期
