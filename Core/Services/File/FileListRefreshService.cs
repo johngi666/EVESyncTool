@@ -1,6 +1,6 @@
 ﻿using EVESyncTool.Core.Config;
 using EVESyncTool.Core.Services.Log;
-using EVESyncTool.Data;
+using EVESyncTool.Core.Config;
 using System;
 using System.Collections.Generic;
 using System.IO;

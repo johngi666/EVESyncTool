@@ -1,6 +1,5 @@
 ﻿using EVESyncTool.Core.Config;
 using EVESyncTool.Core.Services.Log;
-using EVESyncTool.Core.Utils;
 using EVESyncTool.Dialogs.Common;
 using EVESyncTool.Dialogs.Info;
 using EVESyncTool.Dialogs.Progress;

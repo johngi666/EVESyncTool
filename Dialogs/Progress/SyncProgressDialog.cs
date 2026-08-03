@@ -1,7 +1,6 @@
 ﻿using EVESyncTool.Dialogs.Common;
 using System;
 using System.Drawing;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -266,11 +265,6 @@ namespace EVESyncTool.Dialogs.Progress
             _currentStep = 0;
         }
 
-        [DllImport("user32.dll")]
-        private static extern bool ReleaseCapture();
-
-        [DllImport("user32.dll")]
-        private static extern IntPtr SendMessage(IntPtr hWnd, int Msg, int wParam, int lParam);
 
         /// <summary>
         /// 创建并运行同步任务（便捷方法）

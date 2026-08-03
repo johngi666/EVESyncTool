@@ -11,14 +11,13 @@ using EVESyncTool.Core.Services.ServerStatus;
 using EVESyncTool.Core.Services.Sync;
 using EVESyncTool.Core.Services.Update;
 using EVESyncTool.Core.UI;
-using EVESyncTool.Core.Utils;
 using EVESyncTool.Dialogs;
 using EVESyncTool.Dialogs.Common;
 using EVESyncTool.Dialogs.Config;
 using EVESyncTool.Dialogs.Info;
 using EVESyncTool.Dialogs.Progress;
 using EVESyncTool.Dialogs.Sync;
-using EVESyncTool.Data;
+using EVESyncTool.Core.Config;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -44,6 +43,7 @@ namespace EVESyncTool
         private readonly DataGridViewHandler _dataGridViewHandler;
         private readonly ServerStatusManager _serverStatusManager;
         private readonly UpdateDownloader _updateDownloader;
+        private readonly UpdateService _updateService;
 
         private readonly LeftPanelBuilder _leftPanel;
         private readonly RightPanelBuilder _rightPanel;
@@ -65,7 +65,6 @@ namespace EVESyncTool
 
         // 运行期间持续检查更新（每 20 分钟一次，同一版本只提醒一次）
         private readonly System.Windows.Forms.Timer _updateCheckTimer;
-        private string _lastNotifiedVersion;
 
         public string CurrentFolder => _currentFolder;
 
@@ -79,6 +78,7 @@ namespace EVESyncTool
             var folderFinder = new FolderFinder(ServerInfo.ToKeywordMap(), _logService.Log, null);
 
             _updateDownloader = new UpdateDownloader(_httpClient);
+            _updateService = new UpdateService(_httpClient, _updateDownloader, _logService.Log, this);
 
             _fileListService = new FileListService(
                 _httpClient,
@@ -162,9 +162,9 @@ namespace EVESyncTool
             // 启动时立即检查一次，之后每分钟再查（网络不稳定时尽快捕获到新版本）
             _updateCheckTimer = new System.Windows.Forms.Timer();
             _updateCheckTimer.Interval = 60 * 1000;
-            _updateCheckTimer.Tick += async (s, e) => await CheckForUpdatesAsync();
+            _updateCheckTimer.Tick += async (s, e) => await _updateService.CheckForUpdatesAsync();
             _updateCheckTimer.Start();
-            _ = CheckForUpdatesAsync();
+            _ = _updateService.CheckForUpdatesAsync();
         }
 
         private void InitializeComponent()
@@ -566,157 +566,13 @@ namespace EVESyncTool
         private async void BtnCheckUpdate_Click(object sender, EventArgs e)
         {
             _logService.Log("版本检查", "手动触发", "");
-            await CheckForUpdatesAsync(showResultWhenUpToDate: true);
+            await _updateService.CheckForUpdatesAsync(showResultWhenUpToDate: true);
         }
 
         private void ApplyTheme(bool isDark)
         {
             _titleBarBuilder.ApplyTheme(isDark);
             ThemeManager.ApplyToForm(this);
-        }
-
-        private async Task CheckForUpdatesAsync(bool showResultWhenUpToDate = false)
-        {
-            string lastError = null;
-
-            // 多地址轮询：依次尝试，哪个能访问用哪个
-            foreach (string url in AppInfo.UpdateCheckUrls)
-            {
-                try
-                {
-                    using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-                    string json = await _httpClient.GetStringAsync(url, cts.Token);
-                    using var doc = JsonDocument.Parse(json);
-                    var root = doc.RootElement;
-
-                    string remoteVersion = root.GetProperty("version").GetString();
-                    string downloadUrl = root.TryGetProperty("downloadUrl", out var d) ? d.GetString()
-                        : root.TryGetProperty("url", out var u) ? u.GetString() : AppInfo.ReleasesUrl;
-                    string notes = root.TryGetProperty("notes", out var n) ? n.GetString() : "";
-
-                    if (IsNewerVersion(remoteVersion, AppInfo.Version))
-                    {
-                        // 同一版本本次运行只提醒一次（点"稍后提醒"后不再重复弹）
-                        if (remoteVersion == _lastNotifiedVersion)
-                            return;
-                        _lastNotifiedVersion = remoteVersion;
-
-                        this.Invoke(new Action(async () =>
-                        {
-                            using var dialog = new UpdateDialog(remoteVersion, notes, downloadUrl);
-                            dialog.Owner = this;
-                            if (dialog.ShowDialog() == DialogResult.OK)
-                            {
-                                await DownloadAndInstallUpdateAsync(remoteVersion, downloadUrl);
-                            }
-                        }));
-                        _logService.Log("版本检查", "发现新版本", remoteVersion);
-                    }
-                    else
-                    {
-                        _logService.Log("版本检查", "已是最新", AppInfo.Version);
-                        if (showResultWhenUpToDate)
-                        {
-                            this.Invoke(new Action(() =>
-                                CustomMessageBox.Show($"当前已是最新版本 {AppInfo.Version}", "版本检查",
-                                    MessageBoxButtons.OK, MessageBoxIcon.Information)));
-                        }
-                    }
-                    return; // 任一地址成功即结束
-                }
-                catch (Exception ex)
-                {
-                    lastError = ex.Message;
-                    // 尝试下一个地址
-                }
-            }
-
-            // 所有地址都失败
-            _logService.Log("版本检查", "失败", lastError ?? "无法连接更新服务器");
-            if (showResultWhenUpToDate)
-            {
-                this.Invoke(new Action(() =>
-                    CustomMessageBox.Show($"检查更新失败，请检查网络连接。\n\n{lastError}", "版本检查",
-                        MessageBoxButtons.OK, MessageBoxIcon.Warning)));
-            }
-        }
-
-        /// <summary>
-        /// 下载新版本并自动替换重启
-        /// </summary>
-        private async Task DownloadAndInstallUpdateAsync(string version, string downloadUrl)
-        {
-            try
-            {
-                string exePath = Application.ExecutablePath;
-                string dir = Path.GetDirectoryName(exePath) ?? string.Empty;
-                string newExePath = Path.Combine(dir, Path.GetFileNameWithoutExtension(exePath) + ".new.exe");
-
-                using var dialog = new DownloadProgressDialog(version);
-                dialog.Owner = this;
-                dialog.Show();
-
-                var progress = new Progress<int>(p => dialog.UpdateProgress(p, $"已下载 {p}%"));
-                bool ok = await Task.Run(() =>
-                    _updateDownloader.DownloadAndPrepareAsync(downloadUrl, newExePath, progress, CancellationToken.None));
-
-                if (dialog.IsCancelled)
-                {
-                    dialog.Close();
-                    _logService.Log("自动更新", "已取消", version);
-                    return;
-                }
-
-                if (!ok)
-                {
-                    dialog.Close();
-                    CustomMessageBox.Show("下载失败，请稍后重试，或点击标题栏 GitHub/Gitee 按钮手动下载。",
-                        "更新失败", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    _logService.Log("自动更新", "下载失败", downloadUrl);
-                    return;
-                }
-
-                dialog.UpdateProgress(100, "下载完成，即将重启安装...");
-                await Task.Delay(600);
-
-                // 启动替换脚本：杀进程 → 替换 exe → 重启 → 自删
-                _updateDownloader.ApplyUpdateAndRestart(exePath, newExePath);
-                dialog.Close();
-                _logService.Log("自动更新", "成功", $"已下载 {version}，程序即将重启");
-                Application.Exit();
-            }
-            catch (Exception ex)
-            {
-                _logService.Log("自动更新", "异常", ex.Message);
-            }
-        }
-
-        private static bool IsNewerVersion(string remote, string local)
-        {
-            try
-            {
-                // 解析 "v5.3" 格式
-                int[] Parse(string v) => v.TrimStart('v', 'V')
-                    .Split('.')
-                    .Select(s => int.TryParse(s, out int n) ? n : 0)
-                    .ToArray();
-
-                int[] r = Parse(remote);
-                int[] l = Parse(local);
-
-                int len = Math.Max(r.Length, l.Length);
-                for (int i = 0; i < len; i++)
-                {
-                    int rv = i < r.Length ? r[i] : 0;
-                    int lv = i < l.Length ? l[i] : 0;
-                    if (rv != lv) return rv > lv;
-                }
-                return false; // 版本相同
-            }
-            catch
-            {
-                return false;
-            }
         }
 
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)

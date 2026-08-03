@@ -2,7 +2,7 @@
 using EVESyncTool.Core.Mapping;
 using EVESyncTool.Core.Services.File;
 using EVESyncTool.Core.Services.Mapping;
-using EVESyncTool.Data;
+using EVESyncTool.Core.Config;
 using EVESyncTool.Dialogs.Common;
 using EVESyncTool.Dialogs.Progress;
 using EVESyncTool.Dialogs.Sync;

@@ -1,6 +1,6 @@
 ﻿using EVESyncTool.Core.Config;
 using EVESyncTool.Core.UI;
-using EVESyncTool.Data;
+using EVESyncTool.Core.Config;
 using EVESyncTool.Dialogs.Common;
 using System;
 using System.Collections.ObjectModel;

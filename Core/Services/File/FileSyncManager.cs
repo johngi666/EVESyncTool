@@ -1,7 +1,7 @@
 ﻿using EVESyncTool.Core.Config;
 using EVESyncTool.Core.Mapping;
 using EVESyncTool.Core.Marshal;
-using EVESyncTool.Data;
+using EVESyncTool.Core.Config;
 using System;
 using System.Collections.Generic;
 using System.IO;

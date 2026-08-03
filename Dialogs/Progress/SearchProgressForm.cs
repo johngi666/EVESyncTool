@@ -1,7 +1,6 @@
 ﻿using EVESyncTool.Dialogs.Common;
 using System;
 using System.Drawing;
-using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
 namespace EVESyncTool.Dialogs.Progress
@@ -118,10 +117,5 @@ namespace EVESyncTool.Dialogs.Progress
             this.Close();
         }
 
-        [DllImport("user32.dll")]
-        private static extern bool ReleaseCapture();
-
-        [DllImport("user32.dll")]
-        private static extern IntPtr SendMessage(IntPtr hWnd, int Msg, int wParam, int lParam);
     }
 }
