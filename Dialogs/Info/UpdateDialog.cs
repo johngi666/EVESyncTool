@@ -1,6 +1,5 @@
 using EVESyncTool.Dialogs.Common;
 using System;
-using System.Diagnostics;
 using System.Drawing;
 using System.Windows.Forms;
 
@@ -8,6 +7,7 @@ namespace EVESyncTool.Dialogs.Info
 {
     /// <summary>
     /// 新版本通知弹窗
+    /// 点击「立即更新」返回 DialogResult.OK，由调用方执行下载安装
     /// </summary>
     public class UpdateDialog : BaseDialog
     {
@@ -58,7 +58,7 @@ namespace EVESyncTool.Dialogs.Info
 
             Button btnDownload = new Button
             {
-                Text = "前往下载",
+                Text = "立即更新",
                 Size = new Size(110, 35),
                 Location = new Point(150, 235),
                 FlatStyle = FlatStyle.Flat,
@@ -70,8 +70,7 @@ namespace EVESyncTool.Dialogs.Info
             btnDownload.FlatAppearance.BorderSize = 0;
             btnDownload.Click += (s, e) =>
             {
-                try { Process.Start(new ProcessStartInfo(downloadUrl) { UseShellExecute = true }); }
-                catch { }
+                DialogResult = DialogResult.OK;
                 this.Close();
             };
 
@@ -87,7 +86,11 @@ namespace EVESyncTool.Dialogs.Info
                 Cursor = Cursors.Hand
             };
             btnLater.FlatAppearance.BorderSize = 0;
-            btnLater.Click += (s, e) => this.Close();
+            btnLater.Click += (s, e) =>
+            {
+                DialogResult = DialogResult.Cancel;
+                this.Close();
+            };
 
             this.Controls.Add(lblIcon);
             this.Controls.Add(lblTitle);

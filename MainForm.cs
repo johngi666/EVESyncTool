@@ -9,6 +9,7 @@ using EVESyncTool.Core.Services.Grid;
 using EVESyncTool.Core.Services.Log;
 using EVESyncTool.Core.Services.ServerStatus;
 using EVESyncTool.Core.Services.Sync;
+using EVESyncTool.Core.Services.Update;
 using EVESyncTool.Core.UI;
 using EVESyncTool.Core.Utils;
 using EVESyncTool.Dialogs;
@@ -21,6 +22,7 @@ using EVESyncTool.Data;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
@@ -41,6 +43,7 @@ namespace EVESyncTool
         private readonly SyncService _syncService;
         private readonly DataGridViewHandler _dataGridViewHandler;
         private readonly ServerStatusManager _serverStatusManager;
+        private readonly UpdateDownloader _updateDownloader;
 
         private readonly LeftPanelBuilder _leftPanel;
         private readonly RightPanelBuilder _rightPanel;
@@ -74,6 +77,8 @@ namespace EVESyncTool
             _logService = new LogService();
 
             var folderFinder = new FolderFinder(ServerInfo.ToKeywordMap(), _logService.Log, null);
+
+            _updateDownloader = new UpdateDownloader(_httpClient);
 
             _fileListService = new FileListService(
                 _httpClient,
@@ -584,7 +589,8 @@ namespace EVESyncTool
                     var root = doc.RootElement;
 
                     string remoteVersion = root.GetProperty("version").GetString();
-                    string downloadUrl = root.TryGetProperty("url", out var u) ? u.GetString() : AppInfo.ReleasesUrl;
+                    string downloadUrl = root.TryGetProperty("downloadUrl", out var d) ? d.GetString()
+                        : root.TryGetProperty("url", out var u) ? u.GetString() : AppInfo.ReleasesUrl;
                     string notes = root.TryGetProperty("notes", out var n) ? n.GetString() : "";
 
                     if (IsNewerVersion(remoteVersion, AppInfo.Version))
@@ -594,11 +600,14 @@ namespace EVESyncTool
                             return;
                         _lastNotifiedVersion = remoteVersion;
 
-                        this.Invoke(new Action(() =>
+                        this.Invoke(new Action(async () =>
                         {
                             using var dialog = new UpdateDialog(remoteVersion, notes, downloadUrl);
                             dialog.Owner = this;
-                            dialog.ShowDialog();
+                            if (dialog.ShowDialog() == DialogResult.OK)
+                            {
+                                await DownloadAndInstallUpdateAsync(remoteVersion, downloadUrl);
+                            }
                         }));
                         _logService.Log("版本检查", "发现新版本", remoteVersion);
                     }
@@ -628,6 +637,56 @@ namespace EVESyncTool
                 this.Invoke(new Action(() =>
                     CustomMessageBox.Show($"检查更新失败，请检查网络连接。\n\n{lastError}", "版本检查",
                         MessageBoxButtons.OK, MessageBoxIcon.Warning)));
+            }
+        }
+
+        /// <summary>
+        /// 下载新版本并自动替换重启
+        /// </summary>
+        private async Task DownloadAndInstallUpdateAsync(string version, string downloadUrl)
+        {
+            try
+            {
+                string exePath = Application.ExecutablePath;
+                string dir = Path.GetDirectoryName(exePath) ?? string.Empty;
+                string newExePath = Path.Combine(dir, Path.GetFileNameWithoutExtension(exePath) + ".new.exe");
+
+                using var dialog = new DownloadProgressDialog(version);
+                dialog.Owner = this;
+                dialog.Show();
+
+                var progress = new Progress<int>(p => dialog.UpdateProgress(p, $"已下载 {p}%"));
+                bool ok = await Task.Run(() =>
+                    _updateDownloader.DownloadAsync(downloadUrl, newExePath, progress, CancellationToken.None));
+
+                if (dialog.IsCancelled)
+                {
+                    dialog.Close();
+                    _logService.Log("自动更新", "已取消", version);
+                    return;
+                }
+
+                if (!ok)
+                {
+                    dialog.Close();
+                    CustomMessageBox.Show("下载失败，请稍后重试，或点击标题栏 GitHub/Gitee 按钮手动下载。",
+                        "更新失败", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    _logService.Log("自动更新", "下载失败", downloadUrl);
+                    return;
+                }
+
+                dialog.UpdateProgress(100, "下载完成，即将重启安装...");
+                await Task.Delay(600);
+
+                // 启动替换脚本：杀进程 → 替换 exe → 重启 → 自删
+                _updateDownloader.ApplyUpdateAndRestart(exePath, newExePath);
+                dialog.Close();
+                _logService.Log("自动更新", "成功", $"已下载 {version}，程序即将重启");
+                Application.Exit();
+            }
+            catch (Exception ex)
+            {
+                _logService.Log("自动更新", "异常", ex.Message);
             }
         }
 
