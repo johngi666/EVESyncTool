@@ -67,7 +67,7 @@ namespace EVESyncTool.Core.UI
                 BackColor = Color.Transparent,
                 Font = new Font("Microsoft YaHei", 9),
                 Size = new Size(80, 25),
-                Location = new Point(200, 4),
+                Location = new Point(400, 4),
                 Cursor = Cursors.Hand
             };
             _btnHelp.FlatAppearance.BorderSize = 0;
@@ -81,7 +81,7 @@ namespace EVESyncTool.Core.UI
                 BackColor = Color.Transparent,
                 Font = new Font("Microsoft YaHei", 9),
                 Size = new Size(80, 25),
-                Location = new Point(280, 4),
+                Location = new Point(480, 4),
                 Cursor = Cursors.Hand
             };
             _btnLog.FlatAppearance.BorderSize = 0;
@@ -95,7 +95,7 @@ namespace EVESyncTool.Core.UI
                 BackColor = Color.Transparent,
                 Font = new Font("Microsoft YaHei", 9),
                 Size = new Size(85, 25),
-                Location = new Point(455, 4),
+                Location = new Point(655, 4),
                 Cursor = Cursors.Hand
             };
             _btnCheckUpdate.FlatAppearance.BorderSize = 0;
@@ -109,7 +109,7 @@ namespace EVESyncTool.Core.UI
                 BackColor = Color.Transparent,
                 Font = new Font("Microsoft YaHei", 9),
                 Size = new Size(85, 25),
-                Location = new Point(550, 4),
+                Location = new Point(750, 4),
                 Cursor = Cursors.Hand
             };
             _btnGithub.FlatAppearance.BorderSize = 0;
@@ -124,7 +124,7 @@ namespace EVESyncTool.Core.UI
                 BackColor = Color.Transparent,
                 Font = new Font("Microsoft YaHei", 9),
                 Size = new Size(80, 25),
-                Location = new Point(640, 4),
+                Location = new Point(840, 4),
                 Cursor = Cursors.Hand
             };
             _btnGitee.FlatAppearance.BorderSize = 0;
@@ -139,7 +139,7 @@ namespace EVESyncTool.Core.UI
                 BackColor = Color.Transparent,
                 Font = new Font("Microsoft YaHei", 9),
                 Size = new Size(90, 25),
-                Location = new Point(360, 4),
+                Location = new Point(560, 4),
                 Cursor = Cursors.Hand
             };
             _btnTheme.FlatAppearance.BorderSize = 0;
