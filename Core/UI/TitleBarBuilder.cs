@@ -1,4 +1,5 @@
-﻿using System;
+﻿using EVESyncTool.Core;
+using System;
 using System.Diagnostics;
 using System.Drawing;
 using System.Runtime.InteropServices;
@@ -39,10 +40,10 @@ namespace EVESyncTool.Core.UI
                 Margin = new Padding(0)
             };
 
-            // 标题
+            // 标题（带版本号）
             Label titleLabel = new Label
             {
-                Text = "EVE配置管理工具",
+                Text = $"EVE配置管理工具 {AppInfo.Version}",
                 ForeColor = Color.White,
                 Font = new Font("Microsoft YaHei", 14, FontStyle.Bold),
                 AutoSize = true,
