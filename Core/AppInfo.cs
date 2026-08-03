@@ -26,14 +26,16 @@ namespace EVESyncTool.Core
 
         /// <summary>
         /// 远端版本检查地址列表（按顺序尝试，哪个能访问用哪个）
-        /// 1. raw.githubusercontent.com（GitHub 原始文件，国内不稳定）
+        /// 1. gitee.com（国内最稳定，主源）
         /// 2. cdn.jsdelivr.net（GitHub 的 CDN 镜像，国内通常可达）
-        /// 3. github.com/raw（GitHub 主站路径，有时可用）
+        /// 3. raw.githubusercontent.com（GitHub 原始文件，国内不稳定）
+        /// 4. github.com/raw（GitHub 主站路径，有时可用）
         /// </summary>
         public static readonly string[] UpdateCheckUrls =
         {
-            "https://raw.githubusercontent.com/johngi666/EVESyncTool/main/version.json",
+            "https://gitee.com/minisangel/EVESyncTool/raw/main/version.json",
             "https://cdn.jsdelivr.net/gh/johngi666/EVESyncTool@main/version.json",
+            "https://raw.githubusercontent.com/johngi666/EVESyncTool/main/version.json",
             "https://github.com/johngi666/EVESyncTool/raw/main/version.json"
         };
 
