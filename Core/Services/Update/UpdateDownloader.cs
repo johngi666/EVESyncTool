@@ -1,6 +1,8 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
+using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -67,6 +69,52 @@ namespace EVESyncTool.Core.Services.Update
             {
                 // 网络中断、取消等由调用方处理
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// 下载并准备新 exe（支持直接下载 .exe 或 .zip 压缩包自动解压）
+        /// </summary>
+        public async Task<bool> DownloadAndPrepareAsync(
+            string url,
+            string finalExePath,
+            IProgress<int> progress,
+            CancellationToken cancellationToken)
+        {
+            bool isZip = url.EndsWith(".zip", StringComparison.OrdinalIgnoreCase);
+            string tempPath = Path.Combine(Path.GetTempPath(),
+                "eve_update_" + Guid.NewGuid().ToString("N") + (isZip ? ".zip" : ".tmp"));
+
+            try
+            {
+                if (!await DownloadAsync(url, tempPath, progress, cancellationToken))
+                    return false;
+
+                if (isZip)
+                {
+                    string extractDir = Path.Combine(Path.GetTempPath(),
+                        "eve_extract_" + Guid.NewGuid().ToString("N"));
+                    System.IO.Directory.CreateDirectory(extractDir);
+                    ZipFile.ExtractToDirectory(tempPath, extractDir);
+
+                    string zipExe = System.IO.Directory
+                        .GetFiles(extractDir, "*.exe", SearchOption.AllDirectories)
+                        .FirstOrDefault();
+                    if (zipExe == null)
+                        return false;
+
+                    System.IO.File.Move(zipExe, finalExePath, true);
+                }
+                else
+                {
+                    System.IO.File.Move(tempPath, finalExePath, true);
+                }
+
+                return true;
+            }
+            finally
+            {
+                try { if (System.IO.File.Exists(tempPath)) System.IO.File.Delete(tempPath); } catch { }
             }
         }
 

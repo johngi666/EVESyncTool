@@ -657,7 +657,7 @@ namespace EVESyncTool
 
                 var progress = new Progress<int>(p => dialog.UpdateProgress(p, $"已下载 {p}%"));
                 bool ok = await Task.Run(() =>
-                    _updateDownloader.DownloadAsync(downloadUrl, newExePath, progress, CancellationToken.None));
+                    _updateDownloader.DownloadAndPrepareAsync(downloadUrl, newExePath, progress, CancellationToken.None));
 
                 if (dialog.IsCancelled)
                 {
