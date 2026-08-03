@@ -1,4 +1,5 @@
 ﻿using EVESyncTool.Core.Config;
+using EVESyncTool.Core.UI;
 using EVESyncTool.Data;
 using EVESyncTool.Dialogs.Common;
 using System;
@@ -11,8 +12,11 @@ using System.Windows.Forms;
 
 namespace EVESyncTool.Dialogs.Config
 {
-    public partial class VersionManageDialog : Form
+    public partial class VersionManageDialog : BaseDialog
     {
+        // 恢复原风格：标题居中、深蓝标题栏（日间）
+        protected override bool CenterTitle => true;
+
         private readonly ConfigSchemeManager _manager;
         private string _parentFolder;
         private ObservableCollection<ConfigScheme> _schemes;
@@ -34,6 +38,14 @@ namespace EVESyncTool.Dialogs.Config
         }
 
         private void AddLog(string message) => _addLogCallback?.Invoke(message);
+
+        protected override void ApplyTitleBarStyle()
+        {
+            // 日间用深蓝标题栏，夜间用主题色
+            TitleBar.BackColor = ThemeManager.IsDarkMode
+                ? ThemeManager.TitleBar
+                : Color.FromArgb(40, 100, 150);
+        }
 
         private void InitializeForm()
         {

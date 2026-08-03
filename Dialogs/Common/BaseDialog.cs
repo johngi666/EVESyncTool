@@ -16,6 +16,16 @@ namespace EVESyncTool.Dialogs.Common
         protected readonly Label TitleLabel;
         protected readonly Button CloseButton;
 
+        /// <summary>
+        /// 标题栏默认颜色（派生类可覆写，日间模式生效）
+        /// </summary>
+        protected virtual Color TitleBarBackColor => Color.FromArgb(70, 130, 180);
+
+        /// <summary>
+        /// 标题是否居中显示（派生类可覆写）
+        /// </summary>
+        protected virtual bool CenterTitle => false;
+
         public BaseDialog()
         {
             this.FormBorderStyle = FormBorderStyle.None;
@@ -25,7 +35,7 @@ namespace EVESyncTool.Dialogs.Common
             {
                 Height = 35,
                 Dock = DockStyle.Top,
-                BackColor = Color.FromArgb(70, 130, 180)
+                BackColor = TitleBarBackColor
             };
 
             TitleLabel = new Label
@@ -59,7 +69,10 @@ namespace EVESyncTool.Dialogs.Common
             this.Controls.Add(TitleBar);
 
             this.Resize += (s, e) =>
+            {
                 CloseButton.Location = new Point(this.Width - 40, 0);
+                UpdateTitlePosition();
+            };
         }
 
         protected override void OnLoad(EventArgs e)
@@ -67,6 +80,28 @@ namespace EVESyncTool.Dialogs.Common
             base.OnLoad(e);
             TitleLabel.Text = this.Text;
             ThemeManager.ApplyToForm(this);
+            ApplyTitleBarStyle();
+            UpdateTitlePosition();
+        }
+
+        /// <summary>
+        /// 主题应用后调整标题栏样式（派生类可覆写，例如自定义标题栏颜色）
+        /// </summary>
+        protected virtual void ApplyTitleBarStyle()
+        {
+        }
+
+        private void UpdateTitlePosition()
+        {
+            if (CenterTitle)
+            {
+                int w = TextRenderer.MeasureText(TitleLabel.Text, TitleLabel.Font).Width;
+                TitleLabel.Location = new Point(Math.Max(10, (this.Width - w) / 2), 8);
+            }
+            else
+            {
+                TitleLabel.Location = new Point(10, 8);
+            }
         }
 
         /// <summary>

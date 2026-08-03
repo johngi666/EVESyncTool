@@ -205,6 +205,7 @@ namespace EVESyncTool
             {
                 _serverStatusManager?.Stop();
                 _updateCheckTimer?.Stop();
+                _configManager.FlushSave(); // 确保防抖中的配置（如新加的配置方案）写入磁盘
             };
         }
 
