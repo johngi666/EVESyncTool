@@ -105,7 +105,7 @@ namespace EVESyncTool.Core.Services.ServerStatus
                             string json = await response.Content.ReadAsStringAsync();
                             using JsonDocument doc = JsonDocument.Parse(json);
                             int players = doc.RootElement.GetProperty("players").GetInt32();
-                            _logAction?.Invoke($"查询{displayName}状态", "成功", $"人数: {players}");
+                            // 不记录成功查询日志，避免刷屏（只保留超时/失败日志）
 
                             bool wasOnline = _previousOnlineStatus.TryGetValue(serverKey, out bool prevOnline) ? prevOnline : false;
 
