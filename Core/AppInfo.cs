@@ -8,15 +8,14 @@ namespace EVESyncTool.Core
         /// <summary>
         /// 当前版本号（发布时修改此处即可）
         /// </summary>
-        public const string Version = "v5.47";
+        public const string Version = "v5.48";
 
         /// <summary>
         /// 更新内容（每行用 \n 换行）
         /// </summary>
         public const string ReleaseNotes =
-            "   - 自动更新升级：程序内下载 + 进度条 + 自动替换重启\n" +
-            "   - 下载源优先 Gitee（国内稳定）\n" +
-            "   - 更新弹窗新增「立即更新」按钮";
+            "   - 标题栏按钮位置调整（右移100px）\n" +
+            "   - 操作日志不再记录在线人数（避免刷屏）";
 
         /// <summary>
         /// 更新日期

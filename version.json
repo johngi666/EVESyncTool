@@ -1,6 +1,6 @@
 {
-  "version": "v5.47",
-  "downloadUrl": "https://gitee.com/minisangel/EVESyncTool/releases/download/v5.47/EVE配置管理工具_v5.47.zip",
+  "version": "v5.48",
+  "downloadUrl": "https://gitee.com/minisangel/EVESyncTool/releases/download/v5.48/EVE配置管理工具_v5.48.zip",
   "url": "https://github.com/johngi666/EVESyncTool/releases/latest",
-  "notes": "自动更新升级：程序内下载+进度条+自动替换重启、下载源优先Gitee（国内稳定）、标题栏显示版本号"
+  "notes": "标题栏按钮位置调整（右移100px）、操作日志不再记录在线人数（避免刷屏）"
 }
